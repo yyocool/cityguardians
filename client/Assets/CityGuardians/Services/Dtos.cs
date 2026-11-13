@@ -42,6 +42,31 @@ namespace CityGuardians.Services
         public const string NotOwned = "NOT_OWNED";
         /// <summary>아직 쓸 수 없는 기능 (레벨 조건 등).</summary>
         public const string Locked = "LOCKED";
+        /// <summary>하루 한도에 닿았다.</summary>
+        public const string LimitReached = "LIMIT_REACHED";
+        /// <summary>운영 승인이 끝나지 않아 닫혀 있는 기능 (현실 혜택). 준비 중이라고 알린다.</summary>
+        public const string FeatureDisabled = "FEATURE_DISABLED";
+        public const string Forbidden = "FORBIDDEN";
+        public const string RateLimited = "RATE_LIMITED";
+
+        /// <summary>장비 규칙(GearRules)의 이유를 응답 오류 코드로 바꾼다.</summary>
+        public static string FromGearReason(string reason)
+        {
+            switch (reason)
+            {
+                case GearReasons.Unknown: return NotFound;
+                case GearReasons.AlreadyOwned: return AlreadyOwned;
+                case GearReasons.InsufficientGc: return InsufficientFunds;
+                case GearReasons.NotOwned: return NotOwned;
+                case GearReasons.LevelTooLow:
+                case GearReasons.ComingSoon:
+                    return Locked;
+                case GearReasons.MaxLevel:
+                case GearReasons.NoUpgrade:
+                    return Conflict;
+                default: return InvalidRequest;
+            }
+        }
 
         /// <summary>아이템 규칙(InventoryRules)의 이유를 응답 오류 코드로 바꾼다.</summary>
         public static string FromItemReason(string reason)
@@ -134,6 +159,18 @@ namespace CityGuardians.Services
         /// <summary>한 번 이상 이긴 방어전 스테이지.</summary>
         public List<string> clearedStages = new List<string>();
 
+        // ── v8.0 공통 전투 데이터 (모든 전투 모드가 함께 쓴다) ──
+        /// <summary>GC로 산 전투 장비와 강화 단계. 무료 기본 장비는 여기에 없어도 가진 것이다.</summary>
+        public List<OwnedGear> gear = new List<OwnedGear>();
+        /// <summary>모드별 장착.</summary>
+        public List<LoadoutEntry> loadouts = new List<LoadoutEntry>();
+        /// <summary>한 번 이상 이긴 FPS 임무.</summary>
+        public List<string> clearedFpsMissions = new List<string>();
+        /// <summary>내가 소속 도시에 쌓은 기여도.</summary>
+        public long cityContribution;
+        /// <summary>지금 지원 나가 있는 도시. 없으면 비어 있다. 소속 도시(regionCode)는 그대로다.</summary>
+        public string supportRegionCode;
+
         public string GetFlag(string key, string fallback = null)
         {
             for (int i = 0; i < flags.Count; i++)
@@ -168,6 +205,8 @@ namespace CityGuardians.Services
         public List<ItemStack> drops = new List<ItemStack>();
         /// <summary>드롭이 있었을 때의 새 인벤토리. 드롭이 없으면 null.</summary>
         public List<ItemStack> inventory;
+        /// <summary>이번 사냥이 소속 도시의 위험도에 반영된 내용. 반영된 것이 없으면 null.</summary>
+        public CityEffectDto city;
     }
 
     [Serializable]
@@ -208,6 +247,8 @@ namespace CityGuardians.Services
         public int defensePoints;
         /// <summary>방어 포인트가 쌓인 지역. 쌓이지 않았으면 비어 있다.</summary>
         public string regionCode;
+        /// <summary>이번 방어전이 도시의 위험도에 반영된 내용. 이방인이거나 졌으면 null.</summary>
+        public CityEffectDto city;
     }
 
     [Serializable]

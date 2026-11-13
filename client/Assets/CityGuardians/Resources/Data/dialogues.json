@@ -6,7 +6,11 @@
     { "code": "miso", "name": "오미소" },
     { "code": "daon", "name": "은다온" },
     { "code": "areum", "name": "한아름" },
-    { "code": "narae", "name": "정나래" }
+    { "code": "narae", "name": "정나래" },
+    { "code": "seoyun", "name": "윤서윤 매니저" },
+    { "code": "garam", "name": "이가람 안내원" },
+    { "code": "sebin", "name": "문세빈 선생님" },
+    { "code": "ruri", "name": "한루리 안내원" }
   ],
   "panels": [
     {
@@ -180,6 +184,63 @@
         "가디언님, 반가워요! 우리 도시를 잘 부탁드려요.",
         "M 키를 누르면 지도에서 내 도시를 볼 수 있어요.",
         "다른 도시로 이사하는 신청은 아직 준비 중이에요."
+      ]
+    },
+
+    {
+      "npc": "seoyun", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "CITY PASS 안내센터예요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "seoyun", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_citypass",
+      "lines": [
+        "어서 오세요! CITY PASS 안내센터예요.",
+        "CITY PASS 는 게임 점수나 GC 와는 상관없는 무료 멤버십이에요."
+      ]
+    },
+    {
+      "npc": "garam", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "지역 혜택을 안내하는 이가람이에요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "garam", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_citypass_offers",
+      "lines": [
+        "지역 혜택을 안내하는 이가람이에요.",
+        "운영팀과 제휴한 상점의 혜택만 보여 드려요. 다른 지역의 것도 볼 수 있어요."
+      ]
+    },
+    {
+      "npc": "sebin", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "여기는 장학센터예요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "sebin", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_scholarship",
+      "lines": [
+        "어서 와요! 장학센터예요.",
+        "여기서는 장학 프로그램을 안내해요. 신청은 홈페이지에서 하고, 게임 성적은 심사에 쓰이지 않아요."
+      ]
+    },
+    {
+      "npc": "ruri", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "교육 프로그램을 안내하는 한루리예요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "ruri", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_scholarship_schedule",
+      "lines": [
+        "교육 프로그램을 안내하는 한루리예요.",
+        "모집 일정을 알려 드릴게요."
       ]
     }
   ]

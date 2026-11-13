@@ -74,7 +74,8 @@ namespace CityGuardians.UI
             bool show = false;
             WeaponDef ranged = null;
             int kits = 0;
-            if (session != null && session.TutorialStep >= 3 && !GameState.IsControlLocked)
+            // FPS 모드에서는 그 모드의 장비 칸(CombatHud)이 이 자리를 쓴다.
+            if (session != null && session.TutorialStep >= 3 && !GameState.IsControlLocked && !CombatService.IsFps)
             {
                 ranged = session.EquippedRanged;
                 kits = session.CountOf(ItemCodes.RepairKit);

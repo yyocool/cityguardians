@@ -119,6 +119,7 @@ namespace CityGuardians.UI
             bool show = failed || (battle.IsOver && battle.Result != null && !(battle.Retreated && battle.WaveNumber == 0));
             if (_result.activeSelf != show) _result.SetActive(show);
             if (!show) return;
+            _resultBody.fontSize = 36;
 
             if (failed)
             {
@@ -155,8 +156,11 @@ namespace CityGuardians.UI
                 // 주민이 이기면 소속 도시에 방어 포인트가 쌓인다.
                 string cityName = result.defensePoints > 0 ? RegionCatalog.Default.ShortName(result.regionCode) : null;
                 string city = cityName != null ? $"\n{cityName} 방어 포인트  +{result.defensePoints:N0}" : "";
+                // 이긴 결과가 도시 위험도에 반영된 내용 (서버가 계산한 값).
+                string risk = RewardService.CityBlock(result.city);
                 _resultBody.text = $"웨이브 {waveCount}번을 모두 막아냈어요!\n남은 도시 방어 체력  {battle.BaseHp} / {battle.Stage.baseHp}\n\n" +
-                                   $"{reward}\n경험치  +{result.rewardXp}{level}{city}";
+                                   $"{reward}\n경험치  +{result.rewardXp}{level}{city}{risk}";
+                _resultBody.fontSize = string.IsNullOrEmpty(risk) ? 36 : 30;
                 return;
             }
 

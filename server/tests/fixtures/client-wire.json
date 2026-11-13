@@ -1,0 +1,728 @@
+{
+    "GET /cities/budget/options": {
+        "categories": [
+            {
+                "category": "string",
+                "effectType": "string",
+                "name": "string"
+            }
+        ],
+        "enabled": "bool",
+        "facilities": [
+            {
+                "code": "string",
+                "name": "string",
+                "repairGc": "int"
+            }
+        ],
+        "maxRequestGc": "int",
+        "notice": "string",
+        "proposerMinLevel": "int",
+        "quorumVotes": "int",
+        "structures": [
+            {
+                "code": "string",
+                "name": "string"
+            }
+        ],
+        "voteDays": "int",
+        "voterMinLevel": "int",
+        "voterMinResidentDays": "int"
+    },
+    "GET /cities/budget/proposals/{id}": {
+        "proposal": {
+            "canVote": "bool",
+            "category": "string",
+            "categoryName": "string",
+            "createdAt": "string",
+            "description": "string",
+            "expenditure": {
+                "amountGc": "int",
+                "at": "string",
+                "effectDetail": "string",
+                "id": "string"
+            },
+            "id": "string",
+            "mine": "bool",
+            "myVote": "string",
+            "noCount": "int",
+            "proposer": "string",
+            "quorum": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "requestedGc": "int",
+            "reviewNote": "string",
+            "status": "string",
+            "statusName": "string",
+            "targetCode": "string",
+            "targetName": "string",
+            "title": "string",
+            "voteBlockMessage": "string",
+            "voteBlockReason": "string",
+            "voteEndsAt": "string",
+            "voteStartsAt": "string",
+            "yesCount": "int"
+        }
+    },
+    "GET /cities/content": {
+        "available": "bool",
+        "items": [
+            {
+                "addressKey": "string",
+                "catalogUrl": "string",
+                "contentHash": "string",
+                "contentId": "string",
+                "kind": "string",
+                "minClientVersion": "string",
+                "regionCode": "string",
+                "sizeBytes": "int",
+                "version": "string"
+            }
+        ]
+    },
+    "GET /cities/growth": {
+        "cities": [
+            {
+                "contentVersion": "null|string",
+                "modelingStatus": "string",
+                "name": "string",
+                "nextThreshold": "int",
+                "openedAt": "null|string",
+                "regionCode": "string",
+                "sidoCode": "string",
+                "stage": "int",
+                "stageName": "null",
+                "streetOpen": "bool",
+                "streetThreshold": "int",
+                "thresholdReached": "bool",
+                "validResidents": "int"
+            }
+        ],
+        "countRule": "string",
+        "milestones": [
+            {
+                "code": "string",
+                "description": "string",
+                "name": "string",
+                "opensStreet": "bool",
+                "threshold": "int"
+            }
+        ]
+    },
+    "GET /cities/{code}/budget/proposals": {
+        "options": {
+            "categories": [
+                {
+                    "category": "string",
+                    "effectType": "string",
+                    "name": "string"
+                }
+            ],
+            "enabled": "bool",
+            "facilities": [
+                {
+                    "code": "string",
+                    "name": "string",
+                    "repairGc": "int"
+                }
+            ],
+            "maxRequestGc": "int",
+            "notice": "string",
+            "proposerMinLevel": "int",
+            "quorumVotes": "int",
+            "structures": [
+                {
+                    "code": "string",
+                    "name": "string"
+                }
+            ],
+            "voteDays": "int",
+            "voterMinLevel": "int",
+            "voterMinResidentDays": "int"
+        },
+        "proposals": [
+            {
+                "canVote": "bool",
+                "category": "string",
+                "categoryName": "string",
+                "createdAt": "string",
+                "description": "string",
+                "id": "string",
+                "mine": "bool",
+                "myVote": "null|string",
+                "noCount": "int",
+                "proposer": "string",
+                "quorum": "int",
+                "regionCode": "string",
+                "regionName": "string",
+                "requestedGc": "int",
+                "reviewNote": "string",
+                "status": "string",
+                "statusName": "string",
+                "targetCode": "string",
+                "targetName": "string",
+                "title": "string",
+                "voteBlockMessage": "string",
+                "voteBlockReason": "null|string",
+                "voteEndsAt": "string",
+                "voteStartsAt": "string",
+                "yesCount": "int"
+            }
+        ],
+        "regionCode": "string",
+        "regionName": "string"
+    },
+    "GET /cities/{code}/growth": {
+        "contentVersion": "string",
+        "countedAt": "string",
+        "cumulativeResidents": "int",
+        "growth30d": "int",
+        "growth7d": "int",
+        "milestones": [
+            {
+                "code": "string",
+                "name": "string",
+                "reached": "bool",
+                "threshold": "int"
+            }
+        ],
+        "modelingStatus": "string",
+        "name": "string",
+        "nextThreshold": "int",
+        "openedAt": "string",
+        "regionCode": "string",
+        "sidoCode": "string",
+        "stage": "int",
+        "stageName": "null",
+        "streetOpen": "bool",
+        "streetThreshold": "int",
+        "thresholdReached": "bool",
+        "trend": [
+            {
+                "date": "string",
+                "validResidents": "int"
+            }
+        ],
+        "validResidents": "int"
+    },
+    "GET /cities/{code}/treasury": {
+        "generalGc": "int",
+        "income": [
+            {
+                "last30dGc": "int",
+                "taxName": "string",
+                "taxType": "string",
+                "totalGc": "int"
+            }
+        ],
+        "notice": "string",
+        "recent": [
+            {
+                "account": "string",
+                "at": "string",
+                "balanceAfter": "int",
+                "deltaGc": "int",
+                "reason": "string",
+                "reasonName": "string"
+            }
+        ],
+        "regionCode": "string",
+        "regionName": "string",
+        "reserveGc": "int",
+        "reservePercent": "int",
+        "spent": [
+            {
+                "category": "string",
+                "categoryName": "string",
+                "count": "int",
+                "totalGc": "int"
+            }
+        ]
+    },
+    "GET /cities/{code}/treasury/expenditures": {
+        "expenditures": [
+            {
+                "account": "string",
+                "amountGc": "int",
+                "at": "string",
+                "byVote": "bool",
+                "category": "string",
+                "categoryName": "string",
+                "description": "string",
+                "effectDetail": "string",
+                "effectType": "string",
+                "id": "string",
+                "proposalId": "string",
+                "targetCode": "string",
+                "title": "string"
+            }
+        ],
+        "regionCode": "string"
+    },
+    "GET /coop/config": {
+        "activeSession": {
+            "createdAt": "string",
+            "expiresAt": "string",
+            "id": "string",
+            "isHost": "bool",
+            "maxPlayers": "int",
+            "members": [
+                {
+                    "isHost": "bool",
+                    "isMe": "bool",
+                    "level": "int",
+                    "nickname": "string",
+                    "playerId": "string",
+                    "roleCode": "null|string",
+                    "status": "string"
+                }
+            ],
+            "mine": "bool",
+            "players": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "startedAt": "null",
+            "status": "string",
+            "statusName": "string",
+            "zoneCode": "string",
+            "zoneName": "string"
+        },
+        "allowLateJoin": "bool",
+        "available": "bool",
+        "dailyRewardLimit": "int",
+        "defaultPlayers": "int",
+        "maxPlayers": "int",
+        "minPlayersToStart": "int",
+        "ping": {
+            "blocked": "bool",
+            "burst": "int",
+            "enabled": "bool",
+            "kinds": [
+                {
+                    "kind": "string",
+                    "name": "string"
+                }
+            ],
+            "lifetimeSeconds": "int",
+            "rangeOverlay": "bool",
+            "refillSeconds": "int",
+            "routeOverlay": "bool"
+        },
+        "regionCode": "string",
+        "rewardsLeftToday": "int",
+        "roleRequired": "bool",
+        "roles": [
+            {
+                "attackBonusPercent": "int",
+                "buildDiscountPercent": "int",
+                "code": "string",
+                "description": "string",
+                "maxPerSession": "int",
+                "name": "string",
+                "pingCooldownPercent": "int",
+                "repairBonusPercent": "int"
+            }
+        ],
+        "unavailableReason": "null"
+    },
+    "GET /coop/sessions": {
+        "regionCode": "string",
+        "sessions": [
+            {
+                "createdAt": "string",
+                "expiresAt": "string",
+                "id": "string",
+                "isHost": "bool",
+                "maxPlayers": "int",
+                "members": [
+                    {
+                        "isHost": "bool",
+                        "isMe": "bool",
+                        "level": "int",
+                        "nickname": "string",
+                        "playerId": "string",
+                        "roleCode": "null|string",
+                        "status": "string"
+                    }
+                ],
+                "mine": "bool",
+                "players": "int",
+                "regionCode": "string",
+                "regionName": "string",
+                "startedAt": "null",
+                "status": "string",
+                "statusName": "string",
+                "zoneCode": "string",
+                "zoneName": "string"
+            }
+        ]
+    },
+    "GET /coop/sessions/{id}/result": {
+        "finished": "bool",
+        "result": {
+            "damageDealt": "int",
+            "durationSeconds": "int",
+            "endedAt": "null|string",
+            "energyGranted": "int",
+            "energySpent": "int",
+            "gateHpLeft": "int",
+            "gc": "int",
+            "kills": "int",
+            "level": "int",
+            "pingsSent": "int",
+            "playersAtStart": "int",
+            "repairs": "int",
+            "result": "null|string",
+            "rewardGc": "int",
+            "rewardMessage": "string",
+            "rewardNote": "null",
+            "rewardXp": "int",
+            "sessionId": "string",
+            "status": "string",
+            "towersBuilt": "int",
+            "towersUpgraded": "int",
+            "wavesCleared": "int",
+            "xp": "int",
+            "xpNext": "int",
+            "zoneCode": "string"
+        },
+        "team": [
+            {
+                "damageDealt": "int",
+                "isMe": "bool",
+                "kills": "int",
+                "nickname": "string",
+                "playerId": "string",
+                "repairs": "int",
+                "roleCode": "null|string",
+                "towersBuilt": "int",
+                "towersUpgraded": "int"
+            }
+        ]
+    },
+    "GET /dashboard/summary": {
+        "finance": {
+            "bankAvailable": "bool",
+            "bankGc": "int",
+            "gc": "int",
+            "loanBalanceGc": "int",
+            "loansAvailable": "bool",
+            "netWorthGc": "int",
+            "netWorthPartial": "bool",
+            "stockProfitGc": "int",
+            "stockValueGc": "int",
+            "stocksAvailable": "bool",
+            "termGc": "int",
+            "trend": [
+                {
+                    "date": "string",
+                    "gc": "int"
+                }
+            ]
+        },
+        "myCity": {
+            "alert": "bool",
+            "alertReason": "string",
+            "defensePower": "int",
+            "growthStage": "int",
+            "growthStageName": "null",
+            "invasionEndsAt": "string",
+            "invasionKind": "string",
+            "invasionProgress": "int",
+            "invasionRequired": "int",
+            "invasionSeverity": "int",
+            "modelingStatus": "string",
+            "myContribution": "int",
+            "name": "string",
+            "rank": "int",
+            "regionCode": "string",
+            "resident": "bool",
+            "risk": "int",
+            "stage": "string",
+            "supportOpen": "bool",
+            "treasuryGc": "int",
+            "validResidents": "int"
+        },
+        "national": {
+            "averageSafety": "int",
+            "dangerCities": "int",
+            "emergencyCities": "int",
+            "homeRank": "int",
+            "invasionCities": "int",
+            "supportRequests": "int",
+            "top": [
+                {
+                    "name": "string",
+                    "rank": "int",
+                    "regionCode": "string",
+                    "risk": "int",
+                    "score": "int",
+                    "stage": "string"
+                }
+            ],
+            "totalCities": "int",
+            "urgent": [
+                {
+                    "invasionKind": "string",
+                    "name": "string",
+                    "regionCode": "string",
+                    "risk": "int",
+                    "stage": "string"
+                }
+            ]
+        },
+        "notifications": [
+            {
+                "body": "string",
+                "id": "string",
+                "kind": "string",
+                "level": "string",
+                "regionCode": "string",
+                "title": "string"
+            }
+        ],
+        "settings": {
+            "cards": [
+                {
+                    "expanded": "bool",
+                    "id": "string",
+                    "visible": "bool"
+                }
+            ],
+            "cityAlertRisk": "int",
+            "nationalNotice": "int",
+            "refreshSeconds": "int",
+            "sampleData": "bool"
+        },
+        "updatedAt": "string"
+    },
+    "GET /residency": {
+        "canMoveAt": "null",
+        "countRule": "string",
+        "counted": "bool",
+        "gc": "int",
+        "moveCooldownDays": "int",
+        "moveEnabled": "bool",
+        "moveFeeGc": "int",
+        "notCountedReason": "null",
+        "regionCode": "string",
+        "regionName": "string",
+        "residency": "string",
+        "since": "string"
+    },
+    "GET /tax/policies": {
+        "businessIncomeToday": "int",
+        "businessTaxToday": "int",
+        "notice": "string",
+        "policies": [
+            {
+                "active": "bool",
+                "appliesTo": [
+                    {
+                        "name": "string",
+                        "reason": "string"
+                    }
+                ],
+                "capGc": "int",
+                "description": "string",
+                "exempt": "bool",
+                "exemptAmount": "int",
+                "exemptMessage": "string",
+                "exemptReason": "null|string",
+                "graceDays": "int",
+                "included": "bool",
+                "minLevel": "int",
+                "name": "string",
+                "period": "string",
+                "rateBp": "int",
+                "taxType": "string"
+            }
+        ]
+    },
+    "GET /tax/transactions": {
+        "gc": "int",
+        "totals": [
+            {
+                "count": "int",
+                "taxName": "string",
+                "taxType": "string",
+                "totalGc": "int"
+            }
+        ],
+        "transactions": [
+            {
+                "at": "string",
+                "baseGc": "int",
+                "id": "string",
+                "included": "bool",
+                "periodKey": "null|string",
+                "rateBp": "int",
+                "regionCode": "string",
+                "regionName": "string",
+                "sourceReason": "string",
+                "taxGc": "int",
+                "taxName": "string",
+                "taxType": "string"
+            }
+        ]
+    },
+    "POST /cities/budget/proposals": {
+        "proposal": {
+            "canVote": "bool",
+            "category": "string",
+            "categoryName": "string",
+            "createdAt": "string",
+            "description": "string",
+            "id": "string",
+            "mine": "bool",
+            "myVote": "null",
+            "noCount": "int",
+            "proposer": "string",
+            "quorum": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "requestedGc": "int",
+            "reviewNote": "string",
+            "status": "string",
+            "statusName": "string",
+            "targetCode": "string",
+            "targetName": "string",
+            "title": "string",
+            "voteBlockMessage": "string",
+            "voteBlockReason": "string",
+            "voteEndsAt": "null",
+            "voteStartsAt": "null",
+            "yesCount": "int"
+        }
+    },
+    "POST /cities/budget/proposals/{id}/vote": {
+        "proposal": {
+            "canVote": "bool",
+            "category": "string",
+            "categoryName": "string",
+            "createdAt": "string",
+            "description": "string",
+            "id": "string",
+            "mine": "bool",
+            "myVote": "string",
+            "noCount": "int",
+            "proposer": "string",
+            "quorum": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "requestedGc": "int",
+            "reviewNote": "string",
+            "status": "string",
+            "statusName": "string",
+            "targetCode": "string",
+            "targetName": "string",
+            "title": "string",
+            "voteBlockMessage": "string",
+            "voteBlockReason": "string",
+            "voteEndsAt": "string",
+            "voteStartsAt": "string",
+            "yesCount": "int"
+        }
+    },
+    "POST /coop/sessions": {
+        "session": {
+            "createdAt": "string",
+            "expiresAt": "string",
+            "id": "string",
+            "isHost": "bool",
+            "maxPlayers": "int",
+            "members": [
+                {
+                    "isHost": "bool",
+                    "isMe": "bool",
+                    "level": "int",
+                    "nickname": "string",
+                    "playerId": "string",
+                    "roleCode": "null",
+                    "status": "string"
+                }
+            ],
+            "mine": "bool",
+            "players": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "startedAt": "null",
+            "status": "string",
+            "statusName": "string",
+            "zoneCode": "string",
+            "zoneName": "string"
+        }
+    },
+    "POST /coop/sessions/{id}/join": {
+        "session": {
+            "createdAt": "string",
+            "expiresAt": "string",
+            "id": "string",
+            "isHost": "bool",
+            "maxPlayers": "int",
+            "members": [
+                {
+                    "isHost": "bool",
+                    "isMe": "bool",
+                    "level": "int",
+                    "nickname": "string",
+                    "playerId": "string",
+                    "roleCode": "null|string",
+                    "status": "string"
+                }
+            ],
+            "mine": "bool",
+            "players": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "startedAt": "null",
+            "status": "string",
+            "statusName": "string",
+            "zoneCode": "string",
+            "zoneName": "string"
+        }
+    },
+    "POST /coop/sessions/{id}/leave": {
+        "session": {
+            "createdAt": "string",
+            "expiresAt": "string",
+            "id": "string",
+            "isHost": "bool",
+            "maxPlayers": "int",
+            "members": [
+                {
+                    "isHost": "bool",
+                    "isMe": "bool",
+                    "level": "int",
+                    "nickname": "string",
+                    "playerId": "string",
+                    "roleCode": "null",
+                    "status": "string"
+                }
+            ],
+            "mine": "bool",
+            "players": "int",
+            "regionCode": "string",
+            "regionName": "string",
+            "startedAt": "null",
+            "status": "string",
+            "statusName": "string",
+            "zoneCode": "string",
+            "zoneName": "string"
+        }
+    },
+    "POST /coop/sessions/{id}/ticket": {
+        "expiresAt": "string",
+        "sessionId": "string",
+        "ticket": "string",
+        "url": "string"
+    },
+    "POST /residency/move": {
+        "canMoveAt": "string",
+        "feeGc": "int",
+        "gc": "int",
+        "previousRegionCode": "string",
+        "regionCode": "string",
+        "regionName": "string"
+    }
+}

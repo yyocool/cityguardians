@@ -53,6 +53,13 @@ vendor/
 node_modules/
 # 지도 가공 도구가 내려받는 원자료 (35 MB). 출처와 해시는 tools/map/build-regions.mjs 에 있다.
 tools/map/.cache/
+# Unity 없이 검사하는 도구 (tools/check): 내려받은 참조용 어셈블리와 빌드 산출물
+tools/check/.cache/
+tools/check/**/bin/
+tools/check/**/obj/
+# 실시간 서버 (realtime/): 빌드 산출물
+realtime/**/bin/
+realtime/**/obj/
 server/storage/
 *.log
 

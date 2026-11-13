@@ -107,6 +107,12 @@ namespace CityGuardians.Gameplay
             if (_targetHidden && target != null) SetTargetVisible(false);
         }
 
+        /// <summary>숨겨 둔 캐릭터를 다시 보이게 한다. 다른 카메라(전략 시점)로 바꿀 때 쓴다.</summary>
+        public void ShowTarget()
+        {
+            if (target != null) SetTargetVisible(true);
+        }
+
         private void SetTargetVisible(bool visible)
         {
             _targetHidden = !visible;

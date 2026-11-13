@@ -29,6 +29,8 @@ namespace CityGuardians.Inputs
         bool MapPressed { get; }
         /// <summary>가방을 열거나 닫는다.</summary>
         bool InventoryPressed { get; }
+        /// <summary>게임 속 휴대전화를 꺼내거나 넣는다 (CITY PASS, 장학 안내).</summary>
+        bool PhonePressed { get; }
         /// <summary>고른 무기 칸: 1 근접, 2 원거리. 이번 프레임에 고르지 않았으면 0.</summary>
         int WeaponSlotPressed { get; }
         /// <summary>회복 아이템 빠른 사용.</summary>
@@ -37,6 +39,19 @@ namespace CityGuardians.Inputs
         bool DecoratePressed { get; }
         /// <summary>들고 있는 가구를 돌린다.</summary>
         bool RotatePressed { get; }
+
+        // v8.0 전투 모드 (docs/COMBAT_SYSTEM.md 13장). 같은 키가 다른 장면에서는 다른 뜻이므로
+        // 어느 쪽으로 읽을지는 게임 코드가 지금의 전투 모드를 보고 정한다.
+        /// <summary>겨누기 (FPS: 마우스 오른쪽 버튼을 누르고 있는 동안).</summary>
+        bool AimHeld { get; }
+        /// <summary>재장전 (FPS: R).</summary>
+        bool ReloadPressed { get; }
+        /// <summary>보조 장치 쓰기 (FPS: Q).</summary>
+        bool GadgetPressed { get; }
+        /// <summary>지원 장비 쓰기 (FPS: F).</summary>
+        bool SupportPressed { get; }
+        /// <summary>시점 바꾸기 (디펜스: V — 3인칭 ↔ 전략 시점).</summary>
+        bool CameraTogglePressed { get; }
 
         // 화면을 직접 가리키는 입력. 지도처럼 커서가 풀려 있는 화면에서 쓴다 (마우스, 추후 터치).
         /// <summary>가리키는 곳의 화면 좌표 (픽셀, 왼쪽 아래가 0,0).</summary>
@@ -48,6 +63,18 @@ namespace CityGuardians.Inputs
         bool PointerReleased { get; }
         /// <summary>"뒤로"에 해당하는 누름 (마우스 오른쪽 버튼).</summary>
         bool PointerBackPressed { get; }
+
+        // v10.0 실시간 대시보드 (docs/HUD_LAYOUT_SYSTEM.md 5장). F6~F9 는 다른 곳에서 쓰지 않는다.
+        /// <summary>대시보드 전체를 숨기거나 다시 보인다 (F6).</summary>
+        bool DashboardTogglePressed { get; }
+        /// <summary>고른 카드: 1 계좌 (F7), 2 우리 도시 (F8), 3 전국 (F9). 이번 프레임에 고르지 않았으면 0.</summary>
+        int DashboardCardPressed { get; }
+        /// <summary>카드 키와 함께 누르면 상세 보기를 연다 (Shift).</summary>
+        bool DashboardDetailHeld { get; }
+        /// <summary>카드 키와 함께 누르면 그 카드만 숨기거나 다시 보인다 (Ctrl).</summary>
+        bool DashboardHideHeld { get; }
+        /// <summary>누르고 있는 동안 커서가 풀려서 카드를 마우스로 누를 수 있다 (왼쪽 Alt).</summary>
+        bool DashboardPointerHeld { get; }
     }
 
     /// <summary>현재 쓰이는 입력. 테스트에서는 ScriptedInput으로 바꿔 끼운다.</summary>
@@ -132,6 +159,7 @@ namespace CityGuardians.Inputs
 
         public bool MapPressed => Pressed(Key.M);
         public bool InventoryPressed => Pressed(Key.I);
+        public bool PhonePressed => Pressed(Key.P);
 
         // 숫자 키는 선택 메뉴가 떠 있을 때는 선택지 번호이고, 걸어 다닐 때는 무기 칸과 빠른 사용이다.
         // 어느 쪽으로 읽을지는 게임 코드가 상태를 보고 정한다.
@@ -149,6 +177,13 @@ namespace CityGuardians.Inputs
         public bool DecoratePressed => Pressed(Key.F);
         public bool RotatePressed => Pressed(Key.R);
 
+        public bool AimHeld =>
+            Mouse.current != null && Mouse.current.rightButton.isPressed && Cursor.lockState == CursorLockMode.Locked;
+        public bool ReloadPressed => Pressed(Key.R);
+        public bool GadgetPressed => Pressed(Key.Q);
+        public bool SupportPressed => Pressed(Key.F);
+        public bool CameraTogglePressed => Pressed(Key.V);
+
         public Vector2 PointerPosition => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
 
         // 커서가 잠겨 있을 때(걸어 다니는 중)의 클릭은 공격이지 화면을 가리키는 것이 아니다.
@@ -158,6 +193,25 @@ namespace CityGuardians.Inputs
         public bool PointerHeld => PointerActive && Mouse.current.leftButton.isPressed;
         public bool PointerReleased => PointerActive && Mouse.current.leftButton.wasReleasedThisFrame;
         public bool PointerBackPressed => PointerActive && Mouse.current.rightButton.wasPressedThisFrame;
+
+        public bool DashboardTogglePressed => Pressed(Key.F6);
+
+        public int DashboardCardPressed
+        {
+            get
+            {
+                if (Pressed(Key.F7)) return 1;
+                if (Pressed(Key.F8)) return 2;
+                if (Pressed(Key.F9)) return 3;
+                return 0;
+            }
+        }
+
+        public bool DashboardDetailHeld =>
+            Keyboard.current != null && (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+        public bool DashboardHideHeld =>
+            Keyboard.current != null && (Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed);
+        public bool DashboardPointerHeld => Keyboard.current != null && Keyboard.current.leftAltKey.isPressed;
 
         private static bool Pressed(Key key)
         {
@@ -181,6 +235,24 @@ namespace CityGuardians.Inputs
         public Vector2 pointerPosition;
         /// <summary>끌기를 흉내 낼 때 누른 채로 둔다.</summary>
         public bool pointerHeld;
+        /// <summary>겨누기를 누른 채로 둔다 (FPS).</summary>
+        public bool aimHeld;
+
+        private int _reloadFrame = -1;
+        private int _gadgetFrame = -1;
+        private int _supportFrame = -1;
+        private int _cameraToggleFrame = -1;
+
+        public bool AimHeld => aimHeld;
+        public bool ReloadPressed => Time.frameCount == _reloadFrame;
+        public bool GadgetPressed => Time.frameCount == _gadgetFrame;
+        public bool SupportPressed => Time.frameCount == _supportFrame;
+        public bool CameraTogglePressed => Time.frameCount == _cameraToggleFrame;
+
+        public void PressReload() => _reloadFrame = Time.frameCount + 1;
+        public void PressGadget() => _gadgetFrame = Time.frameCount + 1;
+        public void PressSupport() => _supportFrame = Time.frameCount + 1;
+        public void PressCameraToggle() => _cameraToggleFrame = Time.frameCount + 1;
 
         private int _mapFrame = -1;
         private int _pointerDownFrame = -1;
@@ -209,6 +281,10 @@ namespace CityGuardians.Inputs
         public bool RotatePressed => Time.frameCount == _rotateFrame;
 
         public void PressInventory() => _inventoryFrame = Time.frameCount + 1;
+
+        private int _phoneFrame = -1;
+        public bool PhonePressed => Time.frameCount == _phoneFrame;
+        public void PressPhone() => _phoneFrame = Time.frameCount + 1;
         public void PressDecorate() => _decorateFrame = Time.frameCount + 1;
         public void PressRotate() => _rotateFrame = Time.frameCount + 1;
 
@@ -273,6 +349,29 @@ namespace CityGuardians.Inputs
         }
 
         public void PressPointerBack() => _pointerBackFrame = Time.frameCount + 1;
+
+        /// <summary>대시보드의 보조 키를 누른 채로 둔다.</summary>
+        public bool dashboardDetailHeld;
+        public bool dashboardHideHeld;
+        public bool dashboardPointerHeld;
+        private int _dashboardToggleFrame = -1;
+        private int _dashboardCardFrame = -1;
+        private int _dashboardCard;
+
+        public bool DashboardTogglePressed => Time.frameCount == _dashboardToggleFrame;
+        public int DashboardCardPressed => Time.frameCount == _dashboardCardFrame ? _dashboardCard : 0;
+        public bool DashboardDetailHeld => dashboardDetailHeld;
+        public bool DashboardHideHeld => dashboardHideHeld;
+        public bool DashboardPointerHeld => dashboardPointerHeld;
+
+        public void PressDashboardToggle() => _dashboardToggleFrame = Time.frameCount + 1;
+
+        /// <param name="card">1 계좌, 2 우리 도시, 3 전국.</param>
+        public void PressDashboardCard(int card)
+        {
+            _dashboardCard = card;
+            _dashboardCardFrame = Time.frameCount + 1;
+        }
 
         public void PressChoice(int number) => PressNumber(number);
 

@@ -16,6 +16,16 @@ namespace CityGuardians.Gameplay
         Residency,
     }
 
+    /// <summary>지도 위에 겹쳐 띄우는 글 한 장 (v8.0).</summary>
+    public enum MapSheet
+    {
+        None,
+        /// <summary>지역 랭킹.</summary>
+        Rankings,
+        /// <summary>고른 도시의 위험도 변경 이력.</summary>
+        History,
+    }
+
     /// <summary>
     /// 대한민국 지도와 전입신고의 상태 (docs/MAP_SYSTEM.md 3장, docs/RESIDENCY_SYSTEM.md 4장).
     /// 지도는 장면에 속하지 않고 어디서든 겹쳐 띄운다. 화면은 UI가 이 객체의 상태를 읽어 그리고,
@@ -44,6 +54,15 @@ namespace CityGuardians.Gameplay
         /// <summary>상태가 바뀔 때마다 1씩 오른다. 화면이 다시 그릴지 판단하는 데 쓴다.</summary>
         public int Version { get; private set; }
 
+        // ── 도시 위험도 (v8.0, docs/CITY_RISK_SYSTEM.md 8장) ────
+        /// <summary>지역을 위험 단계의 색으로 칠해 보는 중인가. 끄면 시·도의 색으로 본다.</summary>
+        public bool RiskView { get; private set; }
+        /// <summary>전국 위험도를 받았는가.</summary>
+        public bool RiskLoaded => CityRiskService.Loaded;
+        public MapSheet Sheet { get; private set; }
+        public string SheetTitle { get; private set; }
+        public string SheetBody { get; private set; }
+
         /// <summary>전입신고가 끝났을 때. 장면이 등록 연출을 보여 준다.</summary>
         public event Action<ResidencyResultDto> ResidencyCompleted;
 
@@ -54,6 +73,8 @@ namespace CityGuardians.Gameplay
         // 응답이 돌아왔을 때 아직 그 요청을 기다리고 있는지 가리는 번호. 지도를 닫으면 둘 다 올려 응답을 버린다.
         private int _statusRequest;
         private int _actionRequest;
+        private int _riskVersion = -1;
+        private int _regionVersion = -1;
 
         private void Awake()
         {
@@ -137,11 +158,24 @@ namespace CityGuardians.Gameplay
             FocusedSido = mine != null && mode == MapMode.Browse ? mine.sidoCode : null;
             SelectedRegion = mine != null && mode == MapMode.Browse ? mine.code : null;
 
+            // 둘러볼 때는 위험도 색으로, 전입신고할 때는 지금까지처럼 시·도 색으로 시작한다.
+            RiskView = mode == MapMode.Browse;
+            ClearSheet();
+
             GameState.Lock(GameState.LockMap);
             GameEvents.SetPrompt(null);
             Sfx.Play(Sfx.Id.Interact);
             Version++;
             RefreshStatus();
+            // 위험도는 서버가 계산한 값을 받아서 보여 주기만 한다.
+            CityRiskService.Refresh();
+        }
+
+        private void ClearSheet()
+        {
+            Sheet = MapSheet.None;
+            SheetTitle = null;
+            SheetBody = null;
         }
 
         public void Close()
@@ -153,6 +187,7 @@ namespace CityGuardians.Gameplay
             _actionRequest++;
             FocusedSido = null;
             SelectedRegion = null;
+            ClearSheet();
             // 지도가 띄운 선택 메뉴가 남아 있지 않게 한다.
             ChoiceMenu.Instance.Close();
             GameState.Unlock(GameState.LockMap);
@@ -166,7 +201,8 @@ namespace CityGuardians.Gameplay
         public void Back()
         {
             if (!IsOpen || IsBusy) return;
-            if (SelectedRegion != null) SelectedRegion = null;
+            if (Sheet != MapSheet.None) ClearSheet();
+            else if (SelectedRegion != null) SelectedRegion = null;
             else if (FocusedSido != null) FocusedSido = null;
             else { Close(); return; }
             Version++;
@@ -230,6 +266,121 @@ namespace CityGuardians.Gameplay
                 StatusLoaded = true;
                 Version++;
             });
+        }
+
+        // ── 도시 위험도, 랭킹, 지원 (v8.0) ──────────────────────
+
+        /// <summary>그 도시의 위험도 현황. 아직 받지 못했으면 null.</summary>
+        public CityStatusDto RiskOf(string regionCode) => CityRiskService.Of(regionCode);
+
+        /// <summary>위험도 색과 시·도 색을 바꿔 본다.</summary>
+        public void ToggleRiskView()
+        {
+            if (!IsOpen || IsBusy) return;
+            RiskView = !RiskView;
+            Sfx.Play(Sfx.Id.Interact);
+            Version++;
+        }
+
+        /// <summary>지역 랭킹을 지도 위에 띄운다.</summary>
+        public void ShowRankings()
+        {
+            GameSession session = GameSession.Current;
+            if (session == null || !IsOpen || IsBusy) return;
+            IsBusy = true;
+            Version++;
+            int request = ++_actionRequest;
+            RegionService.RefreshRankings(() =>
+            {
+                if (request != _actionRequest || GameSession.Current != session) return;
+                IsBusy = false;
+                Version++;
+                RankingsDto rankings = RegionService.Rankings;
+                if (rankings == null)
+                {
+                    GameEvents.ShowToast("랭킹을 불러오지 못했어요.");
+                    return;
+                }
+                Sheet = MapSheet.Rankings;
+                SheetTitle = "지역 랭킹";
+                SheetBody = CityActions.RankingText(rankings, 10);
+            });
+        }
+
+        /// <summary>고른 도시의 위험도 변경 이력을 지도 위에 띄운다. 어느 도시든 볼 수 있다.</summary>
+        public void ShowHistory()
+        {
+            GameSession session = GameSession.Current;
+            if (session == null || !IsOpen || IsBusy || SelectedRegion == null) return;
+            string regionCode = SelectedRegion;
+            IsBusy = true;
+            Version++;
+            int request = ++_actionRequest;
+            CityRiskService.GetDetail(regionCode, result =>
+            {
+                if (request != _actionRequest || GameSession.Current != session) return;
+                IsBusy = false;
+                Version++;
+                if (!result.ok)
+                {
+                    GameEvents.ShowToast(string.IsNullOrEmpty(result.message) ? "이력을 불러오지 못했어요." : result.message);
+                    return;
+                }
+                Sheet = MapSheet.History;
+                SheetTitle = (RegionService.ShortName(regionCode) ?? "도시") + " 위험도 변경 이력";
+                SheetBody = CityActions.HistoryText(result.data, 10);
+            });
+        }
+
+        /// <summary>고른 도시가 지원을 요청하고 있고, 내가 나설 수 있는 처지인가 (가까운지는 서버가 판단한다).</summary>
+        public bool CanOfferSupport
+        {
+            get
+            {
+                GameSession session = GameSession.Current;
+                if (!IsOpen || Mode != MapMode.Browse || IsBusy || SelectedRegion == null) return false;
+                if (session == null || !session.IsResident || session.Me.regionCode == SelectedRegion) return false;
+                if (session.SupportRegionCode == SelectedRegion) return false;
+                CityStatusDto city = RiskOf(SelectedRegion);
+                return city != null && city.SupportOpen;
+            }
+        }
+
+        /// <summary>고른 도시의 지원 요청에 나선다. 소속 도시는 바뀌지 않는다.</summary>
+        public void OfferSupport()
+        {
+            if (!CanOfferSupport) return;
+            GameSession session = GameSession.Current;
+            CityStatusDto city = RiskOf(SelectedRegion);
+            string requestId = city.supportRequestId;
+            string name = RegionService.ShortName(city.regionCode) ?? "이 도시";
+            ChoiceMenu.Instance.Open($"{name} 지원",
+                $"{CityRiskService.StageBadge(city.stage)} · 위험도 {city.risk}\n{name}의 공동 방어에 참여할까요? 소속 도시는 바뀌지 않아요.",
+                new ChoiceOption
+                {
+                    label = "네, 지원 나갈게요",
+                    detail = "방어전과 긴급 출동에서 이기면 이 도시에 반영돼요.",
+                    onChosen = () => RegionService.JoinSupport(requestId, result =>
+                    {
+                        if (GameSession.Current != session) return;
+                        if (result.ok)
+                        {
+                            Sfx.Play(Sfx.Id.Alarm, 0.5f);
+                            GameEvents.ShowToast($"{name} 지원 출동! 이긴 전투가 {name}에 반영돼요.");
+                            CityRiskService.Refresh();
+                        }
+                        else
+                        {
+                            GameEvents.ShowToast(string.IsNullOrEmpty(result.message) ? "지금은 지원을 나갈 수 없어요." : result.message);
+                        }
+                    }),
+                },
+                new ChoiceOption
+                {
+                    label = "그만둘래요",
+                    detail = "지도로 돌아가요.",
+                    onChosen = () => { },
+                });
         }
 
         // ── 전입신고 ────────────────────────────────────────────
@@ -428,12 +579,25 @@ namespace CityGuardians.Gameplay
                 return;
             }
 
+            // 위험도나 지원 상태가 바뀌면 화면을 다시 그리게 한다.
+            if (_riskVersion != CityRiskService.Version || _regionVersion != RegionService.Version)
+            {
+                _riskVersion = CityRiskService.Version;
+                _regionVersion = RegionService.Version;
+                Version++;
+            }
+
             // 멈춤, 선택 메뉴, 대화가 위에 떠 있는 동안에는 지도가 입력을 받지 않는다.
             if (!AcceptsInput) return;
 
             if (input.MapPressed) Close();
             else if (input.PointerBackPressed) Back();
-            else if (input.InteractPressed) RequestResidency();
+            else if (input.InteractPressed)
+            {
+                // 랭킹이나 이력이 떠 있으면 E로 닫는다.
+                if (Sheet != MapSheet.None) Back();
+                else RequestResidency();
+            }
         }
 
         /// <summary>

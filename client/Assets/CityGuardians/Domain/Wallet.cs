@@ -24,6 +24,19 @@ namespace CityGuardians.Domain
         public const string TermInterest = "term_interest";
         /// <summary>정기예금 중도 해지: 원금만 통장으로 들어옴.</summary>
         public const string TermCancel = "term_cancel";
+
+        // v8.0 전투와 도시
+        public const string FpsReward = "fps_reward";
+        public const string GearPurchase = "gear_purchase";
+        public const string GearUpgrade = "gear_upgrade";
+        /// <summary>도시의 피해 입은 시설을 고치려고 낸 GC.</summary>
+        public const string CityRepair = "city_repair";
+        /// <summary>도시 공용 방어시설 기금에 낸 GC.</summary>
+        public const string CityFund = "city_fund";
+
+        // v9.0
+        /// <summary>이사 수수료.</summary>
+        public const string ResidencyMove = "residency_move";
     }
 
     /// <summary>원장의 한 행 (docs/ECONOMY_SYSTEM.md 3장). 추가만 하고 고치지 않는다.</summary>

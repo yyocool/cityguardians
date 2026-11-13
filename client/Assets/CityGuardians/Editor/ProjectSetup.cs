@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 namespace CityGuardians.EditorTools
 {
     /// <summary>
-    /// 프로젝트에 필요한 에셋을 만든다: 기준 재질 2개와 장면 4개, 빌드 장면 목록.
+    /// 프로젝트에 필요한 에셋을 만든다: 기준 재질 2개와 장면 5개, 빌드 장면 목록.
     /// 장면의 내용물은 실행 중에 코드가 조립하므로 장면 파일에는 시작점 하나만 들어 있다.
     /// 여러 번 실행해도 같은 결과가 나온다.
     ///
@@ -27,6 +27,8 @@ namespace CityGuardians.EditorTools
             SceneDir + "/" + SceneNames.Room + ".unity",
             SceneDir + "/" + SceneNames.City + ".unity",
             SceneDir + "/" + SceneNames.Defense + ".unity",
+            SceneDir + "/" + SceneNames.Fps + ".unity",
+            SceneDir + "/" + SceneNames.Coop + ".unity",
         };
 
         [MenuItem("CityGuardians/Project Setup")]
@@ -47,6 +49,8 @@ namespace CityGuardians.EditorTools
             CreateScene(ScenePaths[1], typeof(RoomBuilder), false);
             CreateScene(ScenePaths[2], typeof(CityBuilder), true);
             CreateScene(ScenePaths[3], typeof(DefenseBuilder), true);
+            CreateScene(ScenePaths[4], typeof(FpsBuilder), true);
+            CreateScene(ScenePaths[5], typeof(CoopBuilder), true);
 
             var scenes = new EditorBuildSettingsScene[ScenePaths.Length];
             for (int i = 0; i < ScenePaths.Length; i++) scenes[i] = new EditorBuildSettingsScene(ScenePaths[i], true);

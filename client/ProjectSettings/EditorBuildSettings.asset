@@ -17,5 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/CityGuardians/Scenes/Defense.unity
     guid: fb5a56b893e21bc4e8e1f4a1f57d4368
+  - enabled: 1
+    path: Assets/CityGuardians/Scenes/Fps.unity
+    guid: a52c35a59529482d9a555e49841663a5
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

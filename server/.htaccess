@@ -1,0 +1,9 @@
+# 이 폴더(server/)는 웹에서 보이면 안 된다: 소스, 마이그레이션, .env 가 있다.
+# 웹 서버는 server/public/ 만 가리켜야 한다. 실수로 이 폴더가 문서 루트 아래에 놓였을 때를 대비한 안전장치다.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order deny,allow
+  Deny from all
+</IfModule>

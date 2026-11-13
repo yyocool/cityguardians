@@ -323,7 +323,13 @@ namespace CityGuardians.Gameplay
         {
             if (!CanBuild || slot == null || slot.Tower != null || def == null) return false;
             GameSession session = GameSession.Current;
-            if (session == null || !session.IsTowerUnlocked(def.code)) return false;
+            if (session == null || !def.IsBuildable || !session.IsTowerUnlocked(def.code)) return false;
+            if (def.maxPerBattle > 0 && CountTowers(def.code) >= def.maxPerBattle)
+            {
+                // 이름에 따라 조사가 달라지므로 조사가 필요 없는 문장으로 쓴다.
+                GameEvents.ShowToast($"{def.name}: 한 전투에 {def.maxPerBattle}개까지 세울 수 있어요.");
+                return false;
+            }
             if (Energy < def.energyCost)
             {
                 GameEvents.ShowToast("에너지가 모자라요. 로봇을 물리치면 에너지를 얻어요.");
@@ -359,6 +365,32 @@ namespace CityGuardians.Gameplay
         {
             _towers.Remove(tower);
             if (CanBuild) GameEvents.ShowToast("타워가 부서졌어요! 빈 자리에 다시 세울 수 있어요.");
+        }
+
+        /// <summary>지금 서 있는 그 종류의 타워 수. 설치 제한(maxPerBattle)에 쓴다.</summary>
+        public int CountTowers(string towerCode)
+        {
+            int count = 0;
+            for (int i = 0; i < _towers.Count; i++)
+                if (_towers[i] != null && _towers[i].IsAlive && _towers[i].Def.code == towerCode) count++;
+            return count;
+        }
+
+        /// <summary>반경 안의 적을 results 에 더한다 (감속 장치, EMP 타워). 돌려주는 값은 더한 수.</summary>
+        public int CollectEnemies(Vector3 center, float radius, List<EnemyAgent> results)
+        {
+            int added = 0;
+            for (int i = 0; i < _alive.Count; i++)
+            {
+                EnemyAgent enemy = _alive[i];
+                if (enemy == null || enemy.IsGone || enemy.State == EnemyState.Spawn) continue;
+                Vector3 to = enemy.transform.position - center;
+                to.y = 0f;
+                if (to.magnitude - enemy.Radius * 0.5f > radius) continue;
+                results.Add(enemy);
+                added++;
+            }
+            return added;
         }
 
         /// <summary>사거리 안에서 방어 거점에 가장 가까이 간 적. 없으면 null.</summary>
@@ -455,7 +487,12 @@ namespace CityGuardians.Gameplay
                     return;
                 }
 
-                if (GameSession.Current == session) session.ApplyBattleResult(result.data);
+                if (GameSession.Current == session)
+                {
+                    session.ApplyBattleResult(result.data);
+                    // 도시 위험도는 서버가 계산해 돌려준 값이다. 받아 둔 현황에 반영만 한다.
+                    CityRiskService.Apply(result.data.city);
+                }
                 Result = result.data;
                 if (!result.data.accepted)
                     Debug.LogWarning("방어전 결과가 인정되지 않음: " + result.data.rejectReason);

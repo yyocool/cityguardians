@@ -1,0 +1,16 @@
+# CITY GUARDIANS 게임 서버 (Apache). 문서 루트나 별칭은 이 public/ 폴더만 가리킨다.
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+  Require all granted
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # 일부 구성(CGI/FastCGI)은 Authorization 헤더를 PHP 에 넘기지 않는다.
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  # 실제 파일(assets/admin.css)이 아니면 모두 index.php 로 보낸다.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ index.php [L]
+</IfModule>

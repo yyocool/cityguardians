@@ -222,6 +222,7 @@ namespace CityGuardians.Services
             // 드롭이 있었을 때만 인벤토리가 함께 온다.
             if (report.inventory != null && report.drops != null && report.drops.Count > 0)
                 Me.inventory = new System.Collections.Generic.List<ItemStack>(report.inventory);
+            ApplyCityEffect(report.city, false);
             Changed?.Invoke();
             if (report.levelsGained > 0) LeveledUp?.Invoke(report.level);
         }
@@ -254,6 +255,7 @@ namespace CityGuardians.Services
             Me.xpNext = result.xpNext;
             Me.hpMax = result.hpMax;
             Me.clearedStages = new System.Collections.Generic.List<string>(result.clearedStages);
+            ApplyCityEffect(result.city, false);
             Changed?.Invoke();
             if (result.levelsGained > 0) LeveledUp?.Invoke(result.level);
         }
@@ -263,6 +265,90 @@ namespace CityGuardians.Services
             Me.gc = unlock.gc;
             Me.unlockedTowers = new System.Collections.Generic.List<string>(unlock.unlockedTowers);
             Changed?.Invoke();
+        }
+
+        // ── v8.0: 전투 장비, FPS 임무, 도시 (docs/COMBAT_SYSTEM.md 12장) ──
+        // 세 전투 모드가 같은 계정·레벨·GC·장비를 쓴다. 모드마다 따로 저장하는 값은 없다.
+
+        /// <summary>전투 결과가 도시에 반영됐을 때. 화면이 위험도 변화를 알리는 데 쓴다.</summary>
+        public event Action<CityEffectDto> CityEffectApplied;
+
+        /// <summary>마지막으로 받은 도시 반영 결과. 없으면 null.</summary>
+        public CityEffectDto LastCityEffect { get; private set; }
+
+        /// <summary>지원 나가 있는 도시. 없으면 null.</summary>
+        public string SupportRegionCode => string.IsNullOrEmpty(Me.supportRegionCode) ? null : Me.supportRegionCode;
+
+        /// <summary>전투가 반영되는 도시: 지원 나가 있으면 그 도시, 아니면 소속 도시. 이방인이면 null.</summary>
+        public string CombatRegionCode => !IsResident ? null : SupportRegionCode ?? Me.regionCode;
+
+        /// <summary>그 모드의 그 칸에 낀 장비. 고른 것이 없으면 무료 기본 장비다 (없으면 null).</summary>
+        public GearDef EquippedGear(string mode, string slot) =>
+            GearRules.Equipped(Defs.combat, Me.gear, Me.loadouts, mode, slot);
+
+        /// <summary>가진 장비의 강화 단계. 기본 장비는 1, 없으면 0.</summary>
+        public int GearLevel(GearDef def) => GearRules.LevelOf(Me.gear, def);
+
+        public bool OwnsGear(GearDef def) => GearRules.Owns(Me.gear, def);
+
+        public bool HasClearedFps(string missionCode) =>
+            Me.clearedFpsMissions != null && Me.clearedFpsMissions.Contains(missionCode);
+
+        /// <summary>장비 구매·강화·장착의 결과를 반영한다.</summary>
+        public void ApplyGear(GearResultDto result)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            Me.gc = result.gc;
+            Me.gear = new System.Collections.Generic.List<OwnedGear>(result.gear);
+            Me.loadouts = new System.Collections.Generic.List<LoadoutEntry>(result.loadouts);
+            Changed?.Invoke();
+        }
+
+        public void ApplyFpsResult(FpsResultDto result)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            Me.gc = result.gc;
+            Me.level = result.level;
+            Me.xp = result.xp;
+            Me.xpNext = result.xpNext;
+            Me.hpMax = result.hpMax;
+            if (result.clearedFpsMissions != null)
+                Me.clearedFpsMissions = new System.Collections.Generic.List<string>(result.clearedFpsMissions);
+            ApplyCityEffect(result.city, false);
+            Changed?.Invoke();
+            if (result.levelsGained > 0) LeveledUp?.Invoke(result.level);
+        }
+
+        /// <summary>시설 복구·도시 기금의 결과를 반영한다.</summary>
+        public void ApplyCityAction(CityActionDto action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            Me.gc = action.gc;
+            ApplyCityEffect(action.city, false);
+            if (action.city == null && action.contribution > 0) Me.cityContribution += action.contribution;
+            Changed?.Invoke();
+        }
+
+        /// <summary>지원 참가·그만두기의 결과를 반영한다. 소속 도시는 바뀌지 않는다.</summary>
+        public void ApplySupport(SupportResultDto result)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            Me.supportRegionCode = result.joinedRegionCode;
+            Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// 전투 결과에 딸려 온 도시 반영 내용을 알린다. 위험도 수치는 서버가 계산한 값이고,
+        /// 클라이언트는 받아서 보여 주기만 한다.
+        /// </summary>
+        public void ApplyCityEffect(CityEffectDto effect, bool notifyChanged = true)
+        {
+            if (effect == null) return;
+            LastCityEffect = effect;
+            // 우리 도시에 쌓은 기여도만 내 기여도다. 지원 나가서 쌓은 것은 서버가 따로 센다.
+            if (effect.actor == RiskActors.Player && effect.contribution > 0) Me.cityContribution += effect.contribution;
+            if (notifyChanged) Changed?.Invoke();
+            CityEffectApplied?.Invoke(effect);
         }
     }
 }

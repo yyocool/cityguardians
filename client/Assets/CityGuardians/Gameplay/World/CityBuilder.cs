@@ -39,6 +39,10 @@ namespace CityGuardians.Gameplay
         private static readonly Vector3 TutorialRobotSpot = new Vector3(-2f, 0f, 23f);
         /// <summary>알록달록 가게. 앞면(북쪽)은 z = -18.5.</summary>
         private static readonly Vector3 ColorShopCenter = new Vector3(20f, 0f, -21.5f);
+        /// <summary>CITY PASS 안내센터. 바다로 가는 길의 동쪽에서 길(서쪽)을 본다. 앞면은 x = 7.</summary>
+        public static readonly Vector3 CityPassCenter = new Vector3(10.5f, 0f, -30f);
+        /// <summary>장학센터. 바다로 가는 길의 서쪽에서 길(동쪽)을 본다. 앞면은 x = -7.</summary>
+        public static readonly Vector3 ScholarshipCenter = new Vector3(-10.5f, 0f, -30f);
         private static readonly Vector3 NorthEastCenter = new Vector3(37f, 0f, 33f);
         private const float BarrierHeight = 0.6f;
         private static readonly Vector3 NorthWestCenter = new Vector3(-37f, 0f, 33f);
@@ -52,6 +56,10 @@ namespace CityGuardians.Gameplay
         private NpcAgent _miso;
         private NpcAgent _daon;
         private NpcAgent _areum;
+        private NpcAgent _seoyun;
+        private NpcAgent _garam;
+        private NpcAgent _sebin;
+        private NpcAgent _ruri;
         private ObjectiveMarker _marker;
         private EnemyAgent _tutorialRobot;
         private int _shownStep = -1;
@@ -81,6 +89,7 @@ namespace CityGuardians.Gameplay
             BuildResidential(world);
             BuildEastSide(world);
             BuildWestSide(world);
+            BuildBenefitCenters(world);
             BuildBattleZoneScenery(world, NorthEastCenter, "북동 전투 구역", 11);
             BuildBattleZoneScenery(world, NorthWestCenter, "북서 전투 구역", 23);
             BuildSeaside(world);
@@ -107,6 +116,9 @@ namespace CityGuardians.Gameplay
             HuntZone.Create(actors, ZoneCodes.NorthEast, NorthEastCenter, BattleHalf - Vector2.one * 2f, true);
             HuntZone.Create(actors, ZoneCodes.NorthWest, NorthWestCenter, BattleHalf - Vector2.one * 2f, true);
             HuntZone.ReportConfirmed += OnReportConfirmed;
+
+            // 헌트 모드: 사냥 결과가 도시 위험도에 반영된 것을 알리고, 위험한 도시에서는 로봇이 더 나온다.
+            actors.gameObject.AddComponent<HuntModeController>();
 
             _marker = ObjectiveMarker.Create();
             _marker.transform.SetParent(actors, true);
@@ -366,6 +378,17 @@ namespace CityGuardians.Gameplay
             Interactable.Add(gate.gameObject, "방어기지", OpenDefenseMenu, 2.0f,
                 () => GameSession.Current != null && GameSession.Current.TutorialStep >= 6 && !GameRoot.Instance.IsBusy);
 
+            // 작전 단말기 (v8.0): 게이트 왼쪽 벽에 붙은 화면. 긴급 출동, 타워 연구, 전투 장비, 도시 방어 현황.
+            // 충돌체가 없어 길 찾기와 걷는 길에 영향을 주지 않는다. 게이트에서 3 m쯤 떨어져 있어 안내가 겹치지 않는다.
+            Transform terminal = Blocks.Pivot(fort, "CommandTerminal", new Vector3(-3.0f, 0f, -4.75f));
+            Blocks.Box(terminal, "Stand", new Vector3(0f, 0.55f, 0f), new Vector3(0.9f, 1.1f, 0.4f), new Color(0.22f, 0.26f, 0.24f));
+            Blocks.Box(terminal, "Screen", new Vector3(0f, 1.45f, -0.05f), new Vector3(1.3f, 0.8f, 0.12f), new Color(0.16f, 0.2f, 0.3f));
+            Blocks.Box(terminal, "ScreenGlow", new Vector3(0f, 1.45f, -0.12f), new Vector3(1.14f, 0.64f, 0.02f), new Color(1f, 0.55f, 0.35f), false, true);
+            WorldLabel.Create(terminal, new Vector3(0f, 2.15f, -0.1f), "작전 단말기", 0.3f, Color.white, null, 2.4f, false);
+            Transform terminalSpot = Blocks.Pivot(terminal, "CommandTerminalInteract", new Vector3(0f, 0f, -0.9f));
+            Interactable.Add(terminalSpot.gameObject, "작전 본부", OpenCommandMenu, 1.7f,
+                () => GameSession.Current != null && GameSession.Current.TutorialStep >= 6 && !GameRoot.Instance.IsBusy);
+
             // 망루
             Blocks.Box(fort, "Tower", new Vector3(3.6f, 6.4f, 2.4f), new Vector3(2.6f, 2.8f, 2.6f), new Color(0.40f, 0.48f, 0.42f));
             Blocks.Box(fort, "TowerTop", new Vector3(3.6f, 8.0f, 2.4f), new Vector3(3.2f, 0.4f, 3.2f), new Color(0.30f, 0.36f, 0.32f));
@@ -376,6 +399,44 @@ namespace CityGuardians.Gameplay
                 Blocks.Box(fort, "Barricade", new Vector3(x, 0.5f, -6.6f), new Vector3(2.6f, 1.0f, 0.6f), new Color(0.95f, 0.75f, 0.2f), true);
                 Blocks.Box(fort, "BarricadeStripe", new Vector3(x, 0.5f, -6.91f), new Vector3(2.6f, 0.3f, 0.02f), new Color(0.15f, 0.15f, 0.18f), false, true);
             }
+        }
+
+        /// <summary>
+        /// 현실 혜택 안내센터 두 곳 (v7.0). 바다로 가는 길의 양쪽에 마주 보고 선다.
+        /// 동쪽은 CITY PASS 안내센터, 서쪽은 장학센터. 안에는 들어가지 않고, 문 앞의 안내원에게 말을 건다.
+        /// 여기서는 안내만 한다: GC 를 쓰거나 받는 창구가 아니다.
+        /// </summary>
+        private void BuildBenefitCenters(Transform world)
+        {
+            // CITY PASS 안내센터 (서쪽을 본다): 민트색 벽과 청록 지붕
+            Color teal = new Color(0.16f, 0.62f, 0.62f);
+            Transform pass = Building(world, "CityPassCenter", CityPassCenter, 90f, 8f, 5f, 7f,
+                new Color(0.90f, 0.97f, 0.95f), teal, new Color(0.12f, 0.42f, 0.44f), "CITY PASS 안내센터", 0);
+            Blocks.Box(pass, "Awning", new Vector3(0f, 2.35f, -4.2f), new Vector3(6.6f, 0.16f, 1.4f), teal);
+            Blocks.Box(pass, "AwningStripe", new Vector3(0f, 2.36f, -4.75f), new Vector3(6.6f, 0.17f, 0.3f), Color.white);
+            // 문 옆의 혜택 안내판: 화면 모양. 충돌체가 없어 걷는 길을 막지 않는다.
+            Transform passBoard = Blocks.Pivot(pass, "OfferBoard", new Vector3(2.9f, 0f, -3.75f));
+            Blocks.Box(passBoard, "Stand", new Vector3(0f, 0.55f, 0f), new Vector3(0.9f, 1.1f, 0.3f), new Color(0.12f, 0.42f, 0.44f));
+            Blocks.Box(passBoard, "Screen", new Vector3(0f, 1.5f, -0.04f), new Vector3(1.5f, 0.9f, 0.12f), new Color(0.16f, 0.2f, 0.3f));
+            Blocks.Box(passBoard, "ScreenGlow", new Vector3(0f, 1.5f, -0.11f), new Vector3(1.34f, 0.74f, 0.02f), new Color(0.55f, 0.95f, 0.88f), false, true);
+            WorldLabel.Create(passBoard, new Vector3(0f, 2.2f, -0.1f), "제휴 혜택 안내", 0.3f, Color.white, null, 2.4f, false);
+
+            // 장학센터 (동쪽을 본다): 크림색 벽과 남색 지붕, 위에는 작은 시계탑
+            Color navy = new Color(0.20f, 0.28f, 0.52f);
+            Transform school = Building(world, "ScholarshipCenter", ScholarshipCenter, -90f, 8f, 5f, 7f,
+                new Color(0.99f, 0.95f, 0.84f), navy, new Color(0.36f, 0.26f, 0.20f), "장학센터", 0);
+            Blocks.Box(school, "ClockTower", new Vector3(0f, 6.1f, -1.6f), new Vector3(2.0f, 1.8f, 2.0f), new Color(0.99f, 0.95f, 0.84f));
+            Blocks.Box(school, "ClockTowerRoof", new Vector3(0f, 7.2f, -1.6f), new Vector3(2.5f, 0.4f, 2.5f), navy);
+            Blocks.Cylinder(school, "ClockFace", new Vector3(0f, 6.1f, -2.62f), new Vector3(1.1f, 0.03f, 1.1f), Color.white, false, true)
+                .transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            // 문 옆의 공고 게시판
+            Transform notice = Blocks.Pivot(school, "NoticeBoard", new Vector3(-2.9f, 0f, -3.75f));
+            Blocks.Box(notice, "PostL", new Vector3(-0.8f, 0.9f, 0f), new Vector3(0.12f, 1.8f, 0.12f), new Color(0.36f, 0.26f, 0.20f));
+            Blocks.Box(notice, "PostR", new Vector3(0.8f, 0.9f, 0f), new Vector3(0.12f, 1.8f, 0.12f), new Color(0.36f, 0.26f, 0.20f));
+            Blocks.Box(notice, "Board", new Vector3(0f, 1.4f, 0f), new Vector3(1.8f, 1.0f, 0.1f), new Color(0.30f, 0.48f, 0.36f));
+            Blocks.Box(notice, "Paper1", new Vector3(-0.4f, 1.45f, -0.06f), new Vector3(0.5f, 0.6f, 0.02f), Color.white, false, true);
+            Blocks.Box(notice, "Paper2", new Vector3(0.35f, 1.4f, -0.06f), new Vector3(0.55f, 0.5f, 0.02f), new Color(1f, 0.95f, 0.75f), false, true);
+            WorldLabel.Create(notice, new Vector3(0f, 2.2f, -0.1f), "모집 공고", 0.3f, Color.white, null, 2.4f, false);
         }
 
         /// <summary>전투 구역의 겉모습: 경고색 바닥, 울타리, 숨을 곳이 되는 잔해.</summary>
@@ -559,6 +620,42 @@ namespace CityGuardians.Gameplay
             };
             _narae = NpcAgent.CreateHuman(actors, "narae", new Vector3(-24.6f, 0f, 8f), 90f, officer);
             _narae.actionHandler = HandleNpcAction;
+
+            // CITY PASS 안내센터: 매니저는 문 앞에, 지역 혜택 안내원은 그 옆에 선다. 둘 다 길(서쪽)을 본다.
+            var passManager = new Appearance
+            {
+                skin = new Color(0.98f, 0.82f, 0.68f), hair = new Color(0.16f, 0.12f, 0.10f),
+                top = new Color(0.16f, 0.62f, 0.62f), bottom = new Color(0.20f, 0.24f, 0.30f),
+                shoes = new Color(0.12f, 0.12f, 0.14f), armband = Appearance.HaeundaeColor, hairStyle = 1,
+            };
+            _seoyun = NpcAgent.CreateHuman(actors, "seoyun", new Vector3(CityPassCenter.x - 5.3f, 0f, CityPassCenter.z), -90f, passManager);
+            _seoyun.actionHandler = HandleNpcAction;
+            var passGuide = new Appearance
+            {
+                skin = new Color(0.92f, 0.74f, 0.58f), hair = new Color(0.34f, 0.22f, 0.14f),
+                top = new Color(0.55f, 0.90f, 0.84f), bottom = new Color(0.26f, 0.30f, 0.40f),
+                shoes = new Color(0.9f, 0.9f, 0.92f), armband = Appearance.HaeundaeColor, hairStyle = 0,
+            };
+            _garam = NpcAgent.CreateHuman(actors, "garam", new Vector3(CityPassCenter.x - 5.1f, 0f, CityPassCenter.z + 2.6f), -90f, passGuide);
+            _garam.actionHandler = HandleNpcAction;
+
+            // 장학센터: 선생님은 문 앞에, 교육 프로그램 안내원은 그 옆에 선다. 둘 다 길(동쪽)을 본다.
+            var teacher = new Appearance
+            {
+                skin = new Color(0.96f, 0.80f, 0.66f), hair = new Color(0.22f, 0.18f, 0.16f),
+                top = new Color(0.20f, 0.28f, 0.52f), bottom = new Color(0.34f, 0.30f, 0.28f),
+                shoes = new Color(0.2f, 0.16f, 0.14f), armband = Appearance.HaeundaeColor, hairStyle = 1,
+            };
+            _sebin = NpcAgent.CreateHuman(actors, "sebin", new Vector3(ScholarshipCenter.x + 5.3f, 0f, ScholarshipCenter.z), 90f, teacher);
+            _sebin.actionHandler = HandleNpcAction;
+            var programGuide = new Appearance
+            {
+                skin = new Color(1f, 0.86f, 0.72f), hair = new Color(0.40f, 0.26f, 0.16f),
+                top = new Color(0.98f, 0.86f, 0.50f), bottom = new Color(0.22f, 0.28f, 0.46f),
+                shoes = new Color(0.9f, 0.9f, 0.92f), armband = Appearance.HaeundaeColor, hairStyle = 2,
+            };
+            _ruri = NpcAgent.CreateHuman(actors, "ruri", new Vector3(ScholarshipCenter.x + 5.1f, 0f, ScholarshipCenter.z + 2.6f), 90f, programGuide);
+            _ruri.actionHandler = HandleNpcAction;
         }
 
         private void HandleNpcAction(string action, Action onSuccess)
@@ -584,6 +681,31 @@ namespace CityGuardians.Gameplay
             if (action == "open_bank")
             {
                 BankActions.Open(_daon);
+                onSuccess();
+                return;
+            }
+            // 현실 혜택 안내 (v7.0). 안내만 한다: GC 를 쓰거나 받는 화면이 아니다.
+            if (action == "open_citypass")
+            {
+                CityPassActions.Open(_seoyun);
+                onSuccess();
+                return;
+            }
+            if (action == "open_citypass_offers")
+            {
+                CityPassActions.OpenOffers(_garam);
+                onSuccess();
+                return;
+            }
+            if (action == "open_scholarship")
+            {
+                ScholarshipActions.Open(_sebin);
+                onSuccess();
+                return;
+            }
+            if (action == "open_scholarship_schedule")
+            {
+                ScholarshipActions.OpenSchedule(_ruri);
                 onSuccess();
                 return;
             }
@@ -686,8 +808,175 @@ namespace CityGuardians.Gameplay
                 onChosen = () => UnlockTower(blast),
             };
 
+            // 관리자가 디펜스 모드를 잠시 닫았으면 출동할 수 없다.
+            if (!ModeOpen(CombatModeCodes.Defense))
+            {
+                deploy.enabled = false;
+                deploy.detail = "지금은 방어전이 잠시 닫혀 있어요.";
+            }
+
             ChoiceMenu.Instance.Open("방어기지",
                 "로봇 무리가 도시 외곽으로 몰려오고 있어요.\n타워를 세워 도시를 지켜 주세요.", deploy, unlock);
+        }
+
+        // ── 작전 단말기 (v8.0) ──────────────────────────────────
+
+        /// <summary>
+        /// 출동 게이트 옆 작전 단말기의 메뉴: 시내 긴급 출동(FPS), 타워 연구, 전투 장비, 도시 방어 현황.
+        /// 출동 게이트의 메뉴(방어전 출동, 폭발 타워 해금)는 그대로 두고, 새 기능은 여기에 모았다.
+        /// </summary>
+        private void OpenCommandMenu()
+        {
+            GameSession session = GameSession.Current;
+            if (session == null) return;
+
+            CityStatusDto city = CityRiskService.CombatCity;
+            string body = "시내로 들어온 로봇을 막는 긴급 출동과\n전투 준비를 여기서 해요.";
+            if (city != null)
+            {
+                string cityName = RegionService.ShortName(city.regionCode) ?? "도시";
+                body = city.HasInvasion
+                    ? $"{InvasionKinds.DisplayName(city.invasionKind)} 발생!  격퇴 {city.invasionProgress} / {city.invasionRequired}\n" +
+                      $"{cityName} 위험도 {city.risk} · {CityRiskService.StageBadge(city.stage)}"
+                    : $"{cityName} 위험도 {city.risk} · {CityRiskService.StageBadge(city.stage)}\n" +
+                      "방어전과 긴급 출동에서 이기면 위험도가 내려가요.";
+            }
+
+            ChoiceMenu.Instance.Open("작전 본부", body,
+                FpsOption(session, city), ResearchOption(session), GearOption(), CityOption(session), CoopOption(), CityOpsOption());
+        }
+
+        /// <summary>모드가 열려 있는가. 정의가 없으면(옛 정의) 열린 것으로 본다.</summary>
+        private static bool ModeOpen(string modeCode)
+        {
+            CombatModeDef mode = CombatService.ModeDef(modeCode);
+            return mode == null || !mode.closed;
+        }
+
+        private ChoiceOption FpsOption(GameSession session, CityStatusDto city)
+        {
+            FpsMissionDef mission = session.Defs.combat.FindFpsMission(FpsMissionCodes.Downtown1);
+            bool open = mission != null && ModeOpen(CombatModeCodes.Fps);
+            bool levelOk = mission != null && session.Me.level >= mission.unlockLevel;
+            bool intrusion = city != null && city.HasInvasion
+                             && (city.invasionKind == InvasionKinds.Intrusion || city.invasionKind == InvasionKinds.Zero);
+            string reward = mission == null ? ""
+                : session.HasClearedFps(mission.code) ? $"보상 {mission.winGc} GC"
+                : $"보상 {mission.winGc} GC + 첫 승리 {mission.firstWinBonusGc} GC";
+            return new ChoiceOption
+            {
+                label = "시내 긴급 출동",
+                cost = mission != null ? mission.name : "준비 중",
+                detail = !open ? "지금은 긴급 출동이 잠시 닫혀 있어요."
+                    : !levelOk ? $"레벨 {mission.unlockLevel}부터 나설 수 있어요."
+                    : intrusion ? $"시내 침입 진행 중! 1인칭으로 로봇을 막고 시설과 시민을 지켜요.  {reward}"
+                    : $"1인칭 임무예요. 로봇을 막고 시설과 시민을 지켜요.  {reward}",
+                enabled = open && levelOk,
+                onChosen = () => GameRoot.Instance.LoadScene(SceneNames.Fps, SpawnIds.FpsPlaza),
+            };
+        }
+
+        private ChoiceOption ResearchOption(GameSession session)
+        {
+            int total = 0;
+            int unlocked = 0;
+            foreach (TowerDef def in session.Defs.towers)
+            {
+                if (!IsResearchable(def)) continue;
+                total++;
+                if (session.IsTowerUnlocked(def.code)) unlocked++;
+            }
+            return new ChoiceOption
+            {
+                label = "타워 연구",
+                cost = $"{unlocked} / {total}",
+                detail = "레이저 타워, 감속 장치, EMP 타워를 해금해요. 한 번 해금하면 계속 쓸 수 있어요.",
+                enabled = total > 0,
+                onChosen = OpenResearchMenu,
+            };
+        }
+
+        /// <summary>연구 메뉴에 나오는 타워: 전투에서 세울 수 있고 GC로 해금하는 것 (폭발 타워는 앞의 칸에 따로 있다).</summary>
+        private static bool IsResearchable(TowerDef def) =>
+            def.IsBuildable && def.unlockGc > 0 && def.code != TowerCodes.Blast;
+
+        private void OpenResearchMenu()
+        {
+            GameSession session = GameSession.Current;
+            if (session == null) return;
+            var options = new System.Collections.Generic.List<ChoiceOption>();
+            foreach (TowerDef def in session.Defs.towers)
+            {
+                if (!IsResearchable(def) || options.Count >= ChoiceMenu.MaxOptions) continue;
+                TowerDef tower = def;
+                bool unlocked = session.IsTowerUnlocked(tower.code);
+                bool levelOk = session.Me.level >= tower.unlockLevel;
+                bool affordable = session.Me.gc >= tower.unlockGc;
+                options.Add(new ChoiceOption
+                {
+                    label = unlocked ? $"{tower.name} (해금 완료)" : $"{tower.name} 해금",
+                    cost = unlocked ? "" : !levelOk ? $"레벨 {tower.unlockLevel}부터" : $"{tower.unlockGc:N0} GC",
+                    detail = unlocked ? "방어전에서 세울 수 있어요."
+                        : !levelOk ? tower.description
+                        : affordable ? tower.description
+                        : $"GC가 모자라요. (지금 {session.Me.gc:N0} GC)",
+                    enabled = !unlocked && levelOk && affordable,
+                    onChosen = () => UnlockTower(tower),
+                });
+            }
+            if (options.Count == 0) return;
+            ChoiceMenu.Instance.Open("타워 연구",
+                "해금한 타워는 내 것이 되어 모든 방어전에서 세울 수 있어요.\n기관총 타워만으로도 방어전을 이길 수 있어요.", options.ToArray());
+            ChoiceMenu.Instance.OnCancelled = OpenCommandMenu;
+        }
+
+        private ChoiceOption GearOption()
+        {
+            GearDef primary = EquipmentSystem.Equipped(CombatModeCodes.Fps, GearSlots.Primary);
+            return new ChoiceOption
+            {
+                label = "전투 장비",
+                cost = primary != null ? primary.name : "",
+                detail = "긴급 출동에 들고 갈 무기와 장치를 사고, 강화하고, 장착해요.",
+                onChosen = () => EquipmentSystem.OpenShop(OpenCommandMenu),
+            };
+        }
+
+        private ChoiceOption CityOption(GameSession session)
+        {
+            return new ChoiceOption
+            {
+                label = "도시 방어 현황",
+                cost = session.IsResident ? "" : "주민 전용",
+                detail = session.IsResident
+                    ? "위험도, 시설 복구, 도시 공용 방어시설, 다른 도시 지원, 지역 랭킹을 봐요."
+                    : "전입신고를 하면 도시를 함께 지킬 수 있어요.",
+                enabled = session.IsResident,
+                onChosen = () => CityActions.Open(OpenCommandMenu),
+            };
+        }
+
+        /// <summary>v9.0 협동 타워디펜스: 연습전은 누구나, 온라인은 주민만 (운영팀이 열기 전에는 준비 중으로 보인다).</summary>
+        private ChoiceOption CoopOption()
+        {
+            return new ChoiceOption
+            {
+                label = "협동 방어전",
+                cost = "여럿이 함께",
+                detail = "도시 외곽의 관문을 여러 대원이 함께 지켜요. 연습전은 지금도 할 수 있어요.",
+                onChosen = () => CoopActions.Open(OpenCommandMenu),
+            };
+        }
+
+        /// <summary>v9.0 도시 성장, 이사, 가상 지방세, 도시 재정, 참여예산.</summary>
+        private ChoiceOption CityOpsOption()
+        {
+            return new ChoiceOption
+            {
+                label = CityOpsActions.Title,
+                detail = "도시 성장, 이사, 지방세, 도시 재정, 참여예산을 봐요.",
+                onChosen = () => CityOpsActions.Open(OpenCommandMenu),
+            };
         }
 
         private void UnlockTower(TowerDef tower)
@@ -799,7 +1088,7 @@ namespace CityGuardians.Gameplay
                     _marker.Point(_hanul.transform, 2.5f);
                     break;
                 default:
-                    GameEvents.SetKeyHint(step >= MapController.MinTutorialStep ? "M  지도      I  가방" : null);
+                    GameEvents.SetKeyHint(step >= MapController.MinTutorialStep ? "M  지도      I  가방      P  휴대전화" : null);
                     switch (_shownGuide)
                     {
                         case 5:

@@ -67,6 +67,36 @@ namespace CityGuardians.Domain
         /// <summary>전투 중 강화 한 번에 드는 에너지.</summary>
         public int upgradeEnergyCost;
         public int maxUpgradeLevel;
+
+        // ── 분류와 소유 (docs/DEFENSE_MODE.md 3장) ──
+        /// <summary>등급 (StructureTiers).</summary>
+        public string tier = StructureTiers.Basic;
+        /// <summary>하는 일 (StructureKinds).</summary>
+        public string kind = StructureKinds.Gun;
+        /// <summary>전투 중 설치형 / 영구 보유형 / 도시 공용 (StructureOwnership).</summary>
+        public string ownership = StructureOwnership.Battle;
+        /// <summary>해금할 수 있는 레벨.</summary>
+        public int unlockLevel = 1;
+        /// <summary>전투에 들고 나갈 때마다 드는 유지비 (GC). 지금은 모두 0이다.</summary>
+        public int upkeepGc;
+        /// <summary>한 전투에서 세울 수 있는 수. 0이면 제한이 없다.</summary>
+        public int maxPerBattle;
+        /// <summary>효과의 크기. 감속 장치는 느려지는 비율(%)이다.</summary>
+        public int effectValue;
+        /// <summary>효과가 이어지는 시간(초). EMP 타워는 적이 멈추는 시간이다.</summary>
+        public float effectSeconds;
+        /// <summary>도시 공용 시설: 한 단계를 올리는 데 필요한 기금 (GC).</summary>
+        public int cityGoalGc;
+        /// <summary>도시 공용 시설: 한 단계마다 오르는 도시 방어력.</summary>
+        public int cityPower;
+        /// <summary>도시 공용 시설의 단계 한도.</summary>
+        public int cityMaxLevel;
+        /// <summary>정의만 있고 아직 게임에서 동작하지 않는다. "준비 중"으로 보인다.</summary>
+        public bool comingSoon;
+
+        public bool IsCityOwned => ownership == StructureOwnership.City;
+        /// <summary>플레이어가 전투에서 세울 수 있는 종류인가 (해금 여부와는 별개).</summary>
+        public bool IsBuildable => !comingSoon && !IsCityOwned;
     }
 
     /// <summary>타워 능력치 계산. 전투 중 강화 단계마다 피해 +40%, 사거리 +10%.</summary>
@@ -315,6 +345,8 @@ namespace CityGuardians.Domain
         public BankConfig bank = new BankConfig();
         public RoomConfig room = new RoomConfig();
         public ProgressionConfig progression = new ProgressionConfig();
+        /// <summary>전투 모드, 전투 장비, FPS 임무, 도시 위험도 정책 (v8.0).</summary>
+        public CombatDefs combat = new CombatDefs();
 
         public ItemDef FindItem(string code)
         {
@@ -378,6 +410,21 @@ namespace CityGuardians.Domain
     {
         public const string MachineGun = "twr_machine_gun";
         public const string Blast = "twr_blast";
+
+        // v8.0 방어시설 (docs/DEFENSE_MODE.md 3장)
+        public const string Wall = "twr_wall";
+        public const string Emp = "twr_emp";
+        public const string Laser = "twr_laser";
+        public const string Slow = "twr_slow";
+        public const string RepairDrone = "twr_repair_drone";
+        public const string AntiAir = "twr_anti_air";
+        public const string EnergyShield = "twr_energy_shield";
+        public const string DroneHangar = "twr_drone_hangar";
+        public const string CommandCenter = "twr_command_center";
+        public const string WideShock = "twr_wide_shock";
+        public const string AiJammer = "twr_ai_jammer";
+        public const string MobileRobot = "twr_mobile_robot";
+        public const string EmergencySupport = "twr_emergency_support";
     }
 
     public static class StageCodes
@@ -438,7 +485,7 @@ namespace CityGuardians.Domain
     {
         public static GameDefs Create()
         {
-            var defs = new GameDefs { version = "local-2026111306" };
+            var defs = new GameDefs { version = "local-2026111308" };
 
             defs.enemies.Add(new EnemyDef
             {
@@ -481,6 +528,7 @@ namespace CityGuardians.Domain
                 description = "빠르게 쏴요. 기계 곤충처럼 작고 빠른 적에게 좋아요.",
                 energyCost = 100, damage = 6, shotsPerSecond = 5f, range = 8f, splashRadius = 0f,
                 canHitAir = true, maxHp = 120, unlockGc = 0, upgradeEnergyCost = 60, maxUpgradeLevel = 3,
+                tier = StructureTiers.Basic, kind = StructureKinds.Gun, ownership = StructureOwnership.Battle,
             });
             defs.towers.Add(new TowerDef
             {
@@ -488,7 +536,10 @@ namespace CityGuardians.Domain
                 description = "느리지만 한꺼번에 여럿을 맞혀요. 로봇 무리에게 좋아요.",
                 energyCost = 175, damage = 40, shotsPerSecond = 0.4f, range = 10f, splashRadius = 2.5f,
                 canHitAir = false, maxHp = 150, unlockGc = 500, upgradeEnergyCost = 105, maxUpgradeLevel = 3,
+                tier = StructureTiers.Basic, kind = StructureKinds.Blast, ownership = StructureOwnership.Permanent,
             });
+            CombatDefaults.AddStructures(defs);
+            defs.combat = CombatDefaults.Create();
 
             defs.stages.Add(new StageDef
             {

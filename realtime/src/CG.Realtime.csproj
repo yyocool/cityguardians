@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    CITY GUARDIANS 실시간 서버 (docs/COOP_DEFENSE_SYSTEM.md 4장).
+    협동 방어전의 전투 상태(적, 타워, 웨이브, 관문, 공동 예산)와 전술 핑을 WebSocket 으로 동기화한다.
+    규칙은 Unity 클라이언트와 같은 소스(client/Assets/CityGuardians/Domain)를 그대로 컴파일해서 쓴다.
+    외부 패키지를 쓰지 않는다 (.NET 8 과 ASP.NET Core 런타임만 있으면 된다).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>CityGuardians.Realtime</RootNamespace>
+    <AssemblyName>CG.Realtime</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DomainRoot>..\..\client\Assets\CityGuardians\Domain</DomainRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(DomainRoot)\**\*.cs" LinkBase="Domain" />
+    <InternalsVisibleTo Include="CG.Realtime.Tests" />
+  </ItemGroup>
+
+</Project>

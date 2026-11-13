@@ -23,6 +23,13 @@ namespace CityGuardians.Gameplay
         /// 적에게는 쓰지 않는다.
         /// </summary>
         public int defensePercent;
+        /// <summary>
+        /// 보호막이 대신 받아 줄 수 있는 피해량 (FPS 보조 장치 "보호막"). 0이면 없다.
+        /// 켜고 끄는 쪽(FpsWeapon)이 값을 넣고, 시간이 다 되면 0으로 되돌린다.
+        /// </summary>
+        public int barrier;
+        /// <summary>보호막이 피해를 받아 냈을 때 (받아 낸 양).</summary>
+        public event Action<int> BarrierHit;
 
         public int Max { get; private set; }
         public int Current { get; private set; }
@@ -61,6 +68,15 @@ namespace CityGuardians.Gameplay
             if (IsDead || amount <= 0) return false;
             if (Time.time < _invulnerableUntil) return false;
             if (defensePercent > 0) amount = DamageFormula.Reduce(amount, defensePercent);
+            if (barrier > 0)
+            {
+                // 보호막이 먼저 받아 낸다. 다 받아 냈으면 맞지 않은 것과 같다.
+                int absorbed = Mathf.Min(barrier, amount);
+                barrier -= absorbed;
+                amount -= absorbed;
+                BarrierHit?.Invoke(absorbed);
+                if (amount <= 0) return false;
+            }
 
             int after = Mathf.Max(Mathf.Max(0, floor), Current - amount);
             int dealt = Current - after;

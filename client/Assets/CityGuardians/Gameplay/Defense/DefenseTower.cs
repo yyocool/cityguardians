@@ -62,12 +62,34 @@ namespace CityGuardians.Gameplay
             return tower;
         }
 
+        /// <summary>적을 쏘지 않고 가까운 적에게 효과를 거는 장치인가 (감속 장치, EMP 타워).</summary>
+        public bool IsFieldDevice => Def.kind == StructureKinds.Slow || Def.kind == StructureKinds.Emp;
+
+        private static readonly Color LaserColor = new Color(1f, 0.35f, 0.75f);
+        private static readonly Color SlowColor = new Color(0.55f, 0.75f, 1f);
+        private static readonly Color EmpColor = new Color(0.75f, 0.55f, 1f);
+        private static readonly System.Collections.Generic.List<EnemyAgent> FieldBuffer =
+            new System.Collections.Generic.List<EnemyAgent>();
+        /// <summary>감속을 다시 거는 간격(초). 걸린 감속은 이보다 조금 길게 이어져 끊기지 않는다.</summary>
+        private const float SlowPulseSeconds = 0.5f;
+
         private void BuildVisual()
         {
             bool blast = Def.splashRadius > 0f;
+            bool laser = Def.kind == StructureKinds.Laser;
+            bool slow = Def.kind == StructureKinds.Slow;
+            bool emp = Def.kind == StructureKinds.Emp;
             Color baseColor = new Color(0.30f, 0.33f, 0.38f);
-            Color body = blast ? new Color(0.90f, 0.42f, 0.22f) : new Color(0.16f, 0.62f, 0.72f);
-            Color trim = blast ? new Color(1f, 0.82f, 0.3f) : new Color(0.75f, 0.95f, 1f);
+            Color body = blast ? new Color(0.90f, 0.42f, 0.22f)
+                : laser ? new Color(0.62f, 0.22f, 0.52f)
+                : slow ? new Color(0.24f, 0.42f, 0.78f)
+                : emp ? new Color(0.46f, 0.30f, 0.76f)
+                : new Color(0.16f, 0.62f, 0.72f);
+            Color trim = blast ? new Color(1f, 0.82f, 0.3f)
+                : laser ? LaserColor
+                : slow ? SlowColor
+                : emp ? EmpColor
+                : new Color(0.75f, 0.95f, 1f);
             _debris = new[] { baseColor, body, trim };
 
             _visual = Blocks.Pivot(transform, "Visual", Vector3.zero);
@@ -76,7 +98,26 @@ namespace CityGuardians.Gameplay
             Blocks.Box(_visual, "Band", new Vector3(0f, 0.45f, 0f), new Vector3(1.52f, 0.08f, 1.52f), trim, false, true);
 
             _head = Blocks.Pivot(_visual, "Head", new Vector3(0f, HeadHeight, 0f));
-            if (blast)
+            if (slow || emp)
+            {
+                // 쏘지 않는 장치: 포신 대신 빛나는 구슬과 고리. 모양만 봐도 타워와 다르다.
+                Blocks.Cylinder(_head, "Ring", new Vector3(0f, -0.1f, 0f), new Vector3(1.1f, 0.08f, 1.1f), body);
+                Blocks.Sphere(_head, "Orb", new Vector3(0f, 0.3f, 0f), new Vector3(0.6f, 0.6f, 0.6f), trim, false, true);
+                if (emp)
+                {
+                    Blocks.Box(_head, "FinA", new Vector3(0f, 0.3f, 0f), new Vector3(1.0f, 0.08f, 0.08f), body);
+                    Blocks.Box(_head, "FinB", new Vector3(0f, 0.3f, 0f), new Vector3(0.08f, 0.08f, 1.0f), body);
+                }
+                _muzzle = Blocks.Pivot(_head, "Muzzle", new Vector3(0f, 0.3f, 0f));
+            }
+            else if (laser)
+            {
+                Blocks.Box(_head, "Body", Vector3.zero, new Vector3(0.6f, 0.5f, 0.9f), body);
+                Blocks.Box(_head, "Barrel", new Vector3(0f, 0f, 0.75f), new Vector3(0.16f, 0.16f, 0.9f), baseColor);
+                Blocks.Box(_head, "Lens", new Vector3(0f, 0f, 1.22f), new Vector3(0.22f, 0.22f, 0.06f), trim, false, true);
+                _muzzle = Blocks.Pivot(_head, "Muzzle", new Vector3(0f, 0f, 1.26f));
+            }
+            else if (blast)
             {
                 Blocks.Box(_head, "Body", Vector3.zero, new Vector3(0.95f, 0.55f, 0.95f), body);
                 GameObject barrel = Blocks.Cylinder(_head, "Barrel", new Vector3(0f, 0.22f, 0.42f), new Vector3(0.42f, 0.8f, 0.42f), baseColor);
@@ -102,6 +143,11 @@ namespace CityGuardians.Gameplay
             _cooldown -= dt;
 
             if (_battle.Phase != DefensePhase.Wave) return;
+            if (IsFieldDevice)
+            {
+                UpdateField();
+                return;
+            }
             EnemyAgent target = _battle.FindTarget(transform.position, TowerMath.Range(Def, Level));
             if (target == null) return;
 
@@ -123,7 +169,7 @@ namespace CityGuardians.Gameplay
             }
             else
             {
-                Fx.Tracer(_muzzle.position, aim, new Color(1f, 0.95f, 0.55f));
+                Fx.Tracer(_muzzle.position, aim, Def.kind == StructureKinds.Laser ? LaserColor : new Color(1f, 0.95f, 0.55f));
                 target.Health.TakeDamage(damage, gameObject);
                 // 여러 타워가 함께 쏠 때 소리가 뭉개지지 않게 간격을 둔다.
                 if (Time.time - _lastShotSfx > 0.07f)
@@ -132,6 +178,38 @@ namespace CityGuardians.Gameplay
                     Sfx.Play(Sfx.Id.TowerShot, 0.5f);
                 }
             }
+        }
+
+        /// <summary>
+        /// 쏘지 않는 장치의 동작 (docs/DEFENSE_MODE.md 3장).
+        /// 감속 장치는 범위 안의 로봇을 계속 느리게 하고, EMP 타워는 정해진 간격으로 범위 안의 로봇을 잠깐 멈춘다.
+        /// 강화하면 범위가 넓어진다 (TowerMath.Range). 피해는 주지 않는다.
+        /// </summary>
+        private void UpdateField()
+        {
+            _head.Rotate(0f, 60f * Time.deltaTime, 0f, Space.World);
+            if (_cooldown > 0f) return;
+
+            float range = TowerMath.Range(Def, Level);
+            FieldBuffer.Clear();
+            int count = _battle.CollectEnemies(transform.position, range, FieldBuffer);
+
+            if (Def.kind == StructureKinds.Slow)
+            {
+                _cooldown = SlowPulseSeconds;
+                float factor = 1f - Mathf.Clamp(Def.effectValue, 0, 80) / 100f;
+                for (int i = 0; i < count; i++) FieldBuffer[i].Slow(factor, SlowPulseSeconds + 0.3f);
+            }
+            else if (count > 0)
+            {
+                // 범위 안에 로봇이 있을 때만 파동을 내보내고, 그때부터 다시 충전한다.
+                _cooldown = 1f / Mathf.Max(0.05f, Def.shotsPerSecond);
+                ShotsFired++;
+                for (int i = 0; i < count; i++) FieldBuffer[i].Stun(Def.effectSeconds);
+                Fx.Shockwave(transform.position + Vector3.up * 0.1f, range, EmpColor);
+                Sfx.Play(Sfx.Id.Alarm, 0.35f);
+            }
+            FieldBuffer.Clear();
         }
 
         /// <summary>한 단계 강화한다. 피해와 사거리가 늘고, 부서진 곳도 고쳐진다.</summary>
@@ -319,17 +397,21 @@ namespace CityGuardians.Gameplay
             foreach (TowerDef def in session.Defs.towers)
             {
                 if (options.Count >= ChoiceMenu.MaxOptions) break;
+                // 도시 공용 시설과 준비 중인 시설은 전투에서 세우는 것이 아니다.
+                if (!def.IsBuildable) continue;
                 TowerDef captured = def;
                 bool unlocked = session.IsTowerUnlocked(def.code);
                 bool affordable = _battle.Energy >= def.energyCost;
+                bool atLimit = def.maxPerBattle > 0 && _battle.CountTowers(def.code) >= def.maxPerBattle;
                 options.Add(new ChoiceOption
                 {
                     label = def.name,
-                    cost = unlocked ? $"에너지 {def.energyCost}" : "잠김",
+                    cost = !unlocked ? "잠김" : atLimit ? $"한도 {def.maxPerBattle}개" : $"에너지 {def.energyCost}",
                     detail = !unlocked ? $"도시의 방어기지에서 {def.unlockGc} GC로 해금할 수 있어요."
+                        : atLimit ? $"한 전투에 {def.maxPerBattle}개까지 세울 수 있어요."
                         : affordable ? def.description
                         : "에너지가 모자라요. 로봇을 물리치면 에너지를 얻어요.",
-                    enabled = unlocked && affordable,
+                    enabled = unlocked && affordable && !atLimit,
                     onChosen = () => _battle.TryBuild(this, captured),
                 });
             }

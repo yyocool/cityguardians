@@ -73,7 +73,9 @@ namespace CityGuardians.Gameplay
         public static string KeyHintFor(int step)
         {
             if (step < MapController.MinTutorialStep) return null;
-            return step >= RoomDecorator.MinTutorialStep ? "M  지도      I  가방      F  방 꾸미기" : "M  지도      I  가방";
+            return step >= RoomDecorator.MinTutorialStep
+                ? "M  지도      I  가방      F  방 꾸미기      P  휴대전화"
+                : "M  지도      I  가방      P  휴대전화";
         }
 
         private static void SetupLighting()

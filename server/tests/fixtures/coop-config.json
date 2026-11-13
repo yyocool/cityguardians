@@ -1,0 +1,446 @@
+{
+    "ok": true,
+    "data": {
+        "session": {
+            "id": "d_fixture0000000",
+            "status": "lobby",
+            "region_code": "11110",
+            "region_name": "종로구",
+            "max_players": 4,
+            "host_pid": "p_fixture_a",
+            "expires_at": "2026-11-14T00:00:00Z",
+            "expires_in_seconds": 900
+        },
+        "zone": {
+            "code": "outskirts_1",
+            "name": "외곽 1구역",
+            "base_hp": 20,
+            "start_energy": 200,
+            "wave_clear_energy": 50,
+            "rest_seconds": 10,
+            "waves": [
+                {
+                    "groups": [
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 6,
+                            "interval": 2.5,
+                            "delay": 0
+                        }
+                    ]
+                },
+                {
+                    "groups": [
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 8,
+                            "interval": 2,
+                            "delay": 0
+                        },
+                        {
+                            "enemy_code": "mech_insect",
+                            "count": 16,
+                            "interval": 0.6,
+                            "delay": 14
+                        }
+                    ]
+                },
+                {
+                    "groups": [
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 10,
+                            "interval": 1.5,
+                            "delay": 0
+                        },
+                        {
+                            "enemy_code": "mech_insect",
+                            "count": 30,
+                            "interval": 0.4,
+                            "delay": 14
+                        }
+                    ]
+                },
+                {
+                    "groups": [
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 16,
+                            "interval": 1.1,
+                            "delay": 0
+                        },
+                        {
+                            "enemy_code": "mech_insect",
+                            "count": 36,
+                            "interval": 0.35,
+                            "delay": 14
+                        }
+                    ]
+                },
+                {
+                    "groups": [
+                        {
+                            "enemy_code": "construction_mecha",
+                            "count": 1,
+                            "interval": 0,
+                            "delay": 0
+                        },
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 14,
+                            "interval": 1.2,
+                            "delay": 2
+                        },
+                        {
+                            "enemy_code": "mech_insect",
+                            "count": 40,
+                            "interval": 0.35,
+                            "delay": 16
+                        },
+                        {
+                            "enemy_code": "malfunction_robot",
+                            "count": 6,
+                            "interval": 1.5,
+                            "delay": 30
+                        },
+                        {
+                            "enemy_code": "mech_insect",
+                            "count": 12,
+                            "interval": 0.4,
+                            "delay": 44
+                        }
+                    ]
+                }
+            ],
+            "win_gc": 300,
+            "first_win_bonus_gc": 200,
+            "win_xp": 150,
+            "lose_gc_per_wave": 20,
+            "min_seconds_per_wave": 10,
+            "win_defense_points": 100,
+            "unlock_level": 1
+        },
+        "gate_hp": 20,
+        "city_structure_levels": 0,
+        "enemies": [
+            {
+                "code": "tutorial_robot",
+                "name": "오작동 로봇",
+                "max_hp": 50,
+                "damage": 4,
+                "move_speed": 2.2,
+                "detect_range": 9,
+                "attack_range": 1.6,
+                "attack_windup": 0.9,
+                "attack_interval": 1.8,
+                "lose_range": 16,
+                "reward_gc": 10,
+                "reward_xp": 10,
+                "base_damage": 1,
+                "reward_energy": 0,
+                "aggro_seconds": 0,
+                "attacks_structures": false,
+                "strike_radius": 0,
+                "structure_damage": 0,
+                "stagger_immune": false
+            },
+            {
+                "code": "malfunction_robot",
+                "name": "오작동 로봇",
+                "max_hp": 60,
+                "damage": 8,
+                "move_speed": 2.8,
+                "detect_range": 10,
+                "attack_range": 1.6,
+                "attack_windup": 0.7,
+                "attack_interval": 1.2,
+                "lose_range": 18,
+                "reward_gc": 10,
+                "reward_xp": 10,
+                "base_damage": 1,
+                "reward_energy": 6,
+                "aggro_seconds": 4,
+                "attacks_structures": false,
+                "strike_radius": 0,
+                "structure_damage": 0,
+                "stagger_immune": false
+            },
+            {
+                "code": "mech_insect",
+                "name": "기계 곤충",
+                "max_hp": 20,
+                "damage": 4,
+                "move_speed": 5,
+                "detect_range": 11,
+                "attack_range": 1.2,
+                "attack_windup": 0.6,
+                "attack_interval": 1,
+                "lose_range": 18,
+                "reward_gc": 3,
+                "reward_xp": 3,
+                "base_damage": 1,
+                "reward_energy": 3,
+                "aggro_seconds": 0,
+                "attacks_structures": false,
+                "strike_radius": 0,
+                "structure_damage": 0,
+                "stagger_immune": false
+            },
+            {
+                "code": "construction_mecha",
+                "name": "건설 메카",
+                "max_hp": 1500,
+                "damage": 30,
+                "move_speed": 1.5,
+                "detect_range": 7,
+                "attack_range": 2.6,
+                "attack_windup": 1.2,
+                "attack_interval": 2.6,
+                "lose_range": 12,
+                "reward_gc": 120,
+                "reward_xp": 100,
+                "base_damage": 5,
+                "reward_energy": 60,
+                "aggro_seconds": 3,
+                "attacks_structures": true,
+                "strike_radius": 3,
+                "structure_damage": 60,
+                "stagger_immune": true
+            }
+        ],
+        "structures": [
+            {
+                "code": "twr_machine_gun",
+                "name": "기관총 타워",
+                "description": "빠르게 쏴요. 기계 곤충처럼 작고 빠른 적에게 좋아요.",
+                "tier": "basic",
+                "kind": "gun",
+                "ownership": "battle",
+                "unlock_gc": 0,
+                "energy_cost": 100,
+                "damage": 6,
+                "shots_per_second": 5,
+                "range": 8,
+                "splash_radius": 0,
+                "can_hit_air": true,
+                "max_hp": 120,
+                "upkeep_gc": 0,
+                "upgrade_energy_cost": 60,
+                "max_upgrade_level": 3,
+                "max_per_battle": 0,
+                "unlock_level": 1,
+                "effect_value": 0,
+                "effect_seconds": 0,
+                "city_goal_gc": 0,
+                "city_power": 0,
+                "city_max_level": 0,
+                "coming_soon": false
+            },
+            {
+                "code": "twr_blast",
+                "name": "폭발 타워",
+                "description": "느리지만 한꺼번에 여럿을 맞혀요. 로봇 무리에게 좋아요.",
+                "tier": "basic",
+                "kind": "blast",
+                "ownership": "permanent",
+                "unlock_gc": 500,
+                "energy_cost": 175,
+                "damage": 40,
+                "shots_per_second": 0.4,
+                "range": 10,
+                "splash_radius": 2.5,
+                "can_hit_air": false,
+                "max_hp": 150,
+                "upkeep_gc": 0,
+                "upgrade_energy_cost": 105,
+                "max_upgrade_level": 3,
+                "max_per_battle": 0,
+                "unlock_level": 1,
+                "effect_value": 0,
+                "effect_seconds": 0,
+                "city_goal_gc": 0,
+                "city_power": 0,
+                "city_max_level": 0,
+                "coming_soon": false
+            },
+            {
+                "code": "twr_laser",
+                "name": "레이저 타워",
+                "description": "한 대상을 세게 지져요. 단단한 로봇에게 좋아요.",
+                "tier": "mid",
+                "kind": "laser",
+                "ownership": "permanent",
+                "unlock_gc": 900,
+                "energy_cost": 200,
+                "damage": 70,
+                "shots_per_second": 1,
+                "range": 11,
+                "splash_radius": 0,
+                "can_hit_air": true,
+                "max_hp": 130,
+                "upkeep_gc": 0,
+                "upgrade_energy_cost": 120,
+                "max_upgrade_level": 3,
+                "max_per_battle": 0,
+                "unlock_level": 4,
+                "effect_value": 0,
+                "effect_seconds": 0,
+                "city_goal_gc": 0,
+                "city_power": 0,
+                "city_max_level": 0,
+                "coming_soon": false
+            },
+            {
+                "code": "twr_slow",
+                "name": "감속 장치",
+                "description": "가까운 로봇을 느리게 해요. 다른 타워가 더 오래 쏠 수 있어요.",
+                "tier": "mid",
+                "kind": "slow",
+                "ownership": "permanent",
+                "unlock_gc": 600,
+                "energy_cost": 120,
+                "damage": 0,
+                "shots_per_second": 0,
+                "range": 6,
+                "splash_radius": 0,
+                "can_hit_air": false,
+                "max_hp": 110,
+                "upkeep_gc": 0,
+                "upgrade_energy_cost": 70,
+                "max_upgrade_level": 2,
+                "max_per_battle": 2,
+                "unlock_level": 2,
+                "effect_value": 40,
+                "effect_seconds": 0,
+                "city_goal_gc": 0,
+                "city_power": 0,
+                "city_max_level": 0,
+                "coming_soon": false
+            },
+            {
+                "code": "twr_emp",
+                "name": "EMP 타워",
+                "description": "가끔 전자기 파동을 내보내 가까운 로봇을 잠깐 멈춰요.",
+                "tier": "mid",
+                "kind": "emp",
+                "ownership": "permanent",
+                "unlock_gc": 800,
+                "energy_cost": 150,
+                "damage": 0,
+                "shots_per_second": 0.2,
+                "range": 6,
+                "splash_radius": 0,
+                "can_hit_air": false,
+                "max_hp": 130,
+                "upkeep_gc": 0,
+                "upgrade_energy_cost": 90,
+                "max_upgrade_level": 2,
+                "max_per_battle": 2,
+                "unlock_level": 3,
+                "effect_value": 0,
+                "effect_seconds": 1.5,
+                "city_goal_gc": 0,
+                "city_power": 0,
+                "city_max_level": 0,
+                "coming_soon": false
+            }
+        ],
+        "roles": [
+            {
+                "code": "commander",
+                "name": "지휘관",
+                "description": "전술 핑을 더 자주 쓸 수 있어요. 어디를 막을지 팀에 알려 주세요.",
+                "build_discount_percent": 0,
+                "repair_bonus_percent": 0,
+                "attack_bonus_percent": 0,
+                "ping_cooldown_percent": 50,
+                "max_per_session": 1
+            },
+            {
+                "code": "builder",
+                "name": "타워 설치 담당",
+                "description": "타워를 세우고 강화할 때 공동 예산이 덜 들어요.",
+                "build_discount_percent": 10,
+                "repair_bonus_percent": 0,
+                "attack_bonus_percent": 0,
+                "ping_cooldown_percent": 0,
+                "max_per_session": 0
+            },
+            {
+                "code": "support",
+                "name": "수리 및 지원 담당",
+                "description": "부서진 타워를 더 빨리 고쳐요.",
+                "build_discount_percent": 0,
+                "repair_bonus_percent": 50,
+                "attack_bonus_percent": 0,
+                "ping_cooldown_percent": 0,
+                "max_per_session": 0
+            },
+            {
+                "code": "fighter",
+                "name": "직접 전투 담당",
+                "description": "직접 공격의 피해가 커요. 타워가 놓친 로봇을 맡아 주세요.",
+                "build_discount_percent": 0,
+                "repair_bonus_percent": 0,
+                "attack_bonus_percent": 20,
+                "ping_cooldown_percent": 0,
+                "max_per_session": 0
+            }
+        ],
+        "rules": {
+            "enabled": 1,
+            "default_players": 4,
+            "max_players": 8,
+            "lobby_minutes": 15,
+            "session_max_minutes": 60,
+            "daily_reward_limit": 5,
+            "hp_scale_percent_per_player": 60,
+            "energy_scale_percent_per_player": 50,
+            "min_participation_percent": 30,
+            "allow_late_join": 1,
+            "ticket_seconds": 60,
+            "min_players_to_start": 2,
+            "city_structure_gate_percent": 5,
+            "player_damage": 12,
+            "player_damage_per_level_percent": 5,
+            "player_range_m": 14,
+            "player_shots_per10s": 30,
+            "repair_hp": 30,
+            "repair_energy": 10
+        },
+        "ping": {
+            "enabled": 1,
+            "burst": 3,
+            "refill_seconds": 4,
+            "lifetime_seconds": 8,
+            "max_active_per_player": 3,
+            "auto_mute_strikes": 5,
+            "auto_mute_seconds": 30,
+            "route_overlay": 1,
+            "range_overlay": 1
+        },
+        "ping_kinds": [
+            "focus_fire",
+            "defend_here",
+            "build_here",
+            "repair_here",
+            "danger",
+            "rally"
+        ],
+        "members": [
+            {
+                "pid": "p_fixture_a",
+                "name": "표본대원A",
+                "role": null,
+                "level": 1
+            },
+            {
+                "pid": "p_fixture_b",
+                "name": "표본대원B",
+                "role": "builder",
+                "level": 1
+            }
+        ]
+    },
+    "server_time": "2026-11-14T00:00:00Z"
+}

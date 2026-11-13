@@ -17,7 +17,7 @@ namespace CityGuardians.Services
     /// 실제 서버 연결 때 guest.json의 비밀키는 Windows 사용자 계정 암호화(DPAPI)로 보관해야 한다.
     /// 이 모의 구현은 개발용이라 평문으로 둔다.
     /// </summary>
-    public sealed class LocalMockBackend : IGameBackend
+    public sealed partial class LocalMockBackend : IGameBackend
     {
         public const string GuestFile = "guest.json";
         public const string ServerFile = "mock_server.json";
@@ -96,6 +96,28 @@ namespace CityGuardians.Services
             public List<TermDeposit> termDeposits = new List<TermDeposit>();
             /// <summary>지금까지 만기가 된 정기예금의 수.</summary>
             public long termMaturedCount;
+
+            // ── v8.0 공통 전투 (모든 전투 모드가 함께 쓴다. 모드별로 따로 저장하지 않는다) ──
+            /// <summary>GC로 산 전투 장비와 강화 단계.</summary>
+            public List<OwnedGear> gear = new List<OwnedGear>();
+            public List<LoadoutEntry> loadouts = new List<LoadoutEntry>();
+            public List<string> clearedFps = new List<string>();
+            /// <summary>오늘 GC 보상을 받은 FPS 임무의 수.</summary>
+            public int dailyFpsRewards;
+            /// <summary>오늘 이 플레이어가 낮춘 도시 위험도 (1/100 단위).</summary>
+            public int dailyRiskReduced;
+            public int dailyRepairs;
+            public int dailyFundGc;
+            /// <summary>아직 위험도에 반영되지 않은 사냥 처치 수.</summary>
+            public int huntKillCarry;
+            /// <summary>소속 도시에 쌓은 기여도.</summary>
+            public long cityContribution;
+            /// <summary>다른 도시를 도와 쌓은 기여도.</summary>
+            public long supportPoints;
+            /// <summary>지금 나가 있는 지원 요청. 없으면 비어 있다.</summary>
+            public string supportRequestId;
+            /// <summary>마지막으로 전투에 참여했거나 전입한 시각. 활성 가디언을 셀 때 쓴다.</summary>
+            public string lastActiveAt;
         }
 
         /// <summary>처리한 요청 한 건 (중복 방지 키와 그때의 결과).</summary>
@@ -327,6 +349,10 @@ namespace CityGuardians.Services
                 levelsGained = Progression.AddXp(ref _player.level, ref _player.xp, verdict.rewardXp, Defs.progression);
                 RollDrops(_player, verdict.accepted, drops);
             }
+            // 사냥은 소속 도시의 위험도를 조금 낮춘다. 서버가 인정한 처치만 센다.
+            CityEffectDto cityEffect = acceptedCount > 0
+                ? ApplyHuntToCity(_player, acceptedCount, session.id + "#" + seq, now)
+                : null;
 
             var response = new HuntReportDto
             {
@@ -344,6 +370,7 @@ namespace CityGuardians.Services
                 rejectReason = verdict.rejectReason,
                 drops = drops,
                 inventory = drops.Count > 0 ? CopyInventory(_player) : null,
+                city = cityEffect,
             };
             session.lastResponse = response;
             SaveDb();
@@ -451,6 +478,7 @@ namespace CityGuardians.Services
 
             int levelsGained = 0;
             int defensePoints = 0;
+            string defenseRegion = null;
             if (verdict.accepted)
             {
                 if (verdict.rewardGc > 0)
@@ -463,9 +491,14 @@ namespace CityGuardians.Services
                 if (verdict.result == BattleResults.Win && IsResident(_player) && session.stage.winDefensePoints > 0)
                 {
                     defensePoints = session.stage.winDefensePoints;
-                    RegionRowFor(_player.regionCode).defensePoints += defensePoints;
+                    defenseRegion = CombatRegionOf(_player);
+                    RegionRowFor(defenseRegion).defensePoints += defensePoints;
                 }
             }
+            // 도시 위험도: 인정된 결과만 반영한다. 이기면 내려가고, 져도 올라가지 않는다.
+            CityEffectDto cityEffect = verdict.accepted
+                ? ApplyCombatToCity(_player, CombatModeCodes.Defense, verdict.result == BattleResults.Win, session.id, now)
+                : null;
 
             session.response = new BattleResultDto
             {
@@ -484,7 +517,8 @@ namespace CityGuardians.Services
                 rejectReason = verdict.rejectReason,
                 clearedStages = new List<string>(_player.clearedStages),
                 defensePoints = defensePoints,
-                regionCode = defensePoints > 0 ? _player.regionCode : null,
+                regionCode = defensePoints > 0 ? defenseRegion : null,
+                city = cityEffect,
             };
             SaveDb();
             done(ApiResult<BattleResultDto>.Success(session.response));
@@ -499,9 +533,20 @@ namespace CityGuardians.Services
                 done(ApiResult<TowerUnlockDto>.Fail(ApiErrors.NotFound, "없는 타워예요."));
                 return;
             }
+            if (!tower.IsBuildable)
+            {
+                done(ApiResult<TowerUnlockDto>.Fail(ApiErrors.Locked,
+                    tower.IsCityOwned ? "도시가 함께 세우는 시설이에요." : "아직 준비 중인 시설이에요."));
+                return;
+            }
             if (tower.unlockGc <= 0 || _player.unlockedTowers.Contains(towerCode))
             {
                 done(ApiResult<TowerUnlockDto>.Fail(ApiErrors.Conflict, "이미 쓸 수 있는 타워예요."));
+                return;
+            }
+            if (_player.level < tower.unlockLevel)
+            {
+                done(ApiResult<TowerUnlockDto>.Fail(ApiErrors.Locked, $"레벨 {tower.unlockLevel}부터 해금할 수 있어요."));
                 return;
             }
             if (_player.balance < tower.unlockGc)
@@ -526,6 +571,8 @@ namespace CityGuardians.Services
             for (int i = 0; i < Defs.towers.Count; i++)
             {
                 TowerDef tower = Defs.towers[i];
+                // 준비 중인 시설과 도시 공용 시설은 개인이 전투에서 세우는 것이 아니다.
+                if (!tower.IsBuildable) continue;
                 if (tower.unlockGc <= 0 || row.unlockedTowers.Contains(tower.code)) usable.Add(tower.code);
             }
             return usable;
@@ -1305,6 +1352,7 @@ namespace CityGuardians.Services
             _player.regionCode = regionCode;
             _player.displayName = NicknameRules.Normalize(nickname);
             _player.registeredAt = now.ToString("o");
+            _player.lastActiveAt = _player.registeredAt;
             RegionRow region = RegionRowFor(regionCode);
             region.residents++;
             SaveDb();
@@ -1444,6 +1492,10 @@ namespace CityGuardians.Services
             if (row.dailyDate == today) return;
             row.dailyDate = today;
             row.dailyHuntGc = 0;
+            row.dailyFpsRewards = 0;
+            row.dailyRiskReduced = 0;
+            row.dailyRepairs = 0;
+            row.dailyFundGc = 0;
             SaveDb();
         }
 
@@ -1477,6 +1529,11 @@ namespace CityGuardians.Services
                 dailyHuntGcLimit = Defs.economy.dailyHuntGcLimit,
                 unlockedTowers = UsableTowers(row),
                 clearedStages = new List<string>(row.clearedStages),
+                gear = CopyGear(row),
+                loadouts = CopyLoadouts(row),
+                clearedFpsMissions = new List<string>(row.clearedFps),
+                cityContribution = row.cityContribution,
+                supportRegionCode = SupportRegionOf(row),
             };
             for (int i = 0; i < row.flags.Count; i++)
                 me.flags.Add(new FlagDto { key = row.flags[i].key, value = row.flags[i].value });
@@ -1521,6 +1578,10 @@ namespace CityGuardians.Services
             if (row.furniture == null) row.furniture = new List<FurniturePiece>();
             if (row.furnitureNextId < 1) row.furnitureNextId = 1;
             if (row.termDeposits == null) row.termDeposits = new List<TermDeposit>();
+            // 전투 장비가 생기기 전의 데이터: 산 장비가 없다. 무료 기본 장비는 누구나 가진 것으로 친다.
+            if (row.gear == null) row.gear = new List<OwnedGear>();
+            if (row.loadouts == null) row.loadouts = new List<LoadoutEntry>();
+            if (row.clearedFps == null) row.clearedFps = new List<string>();
         }
 
         private void SaveDb() => _store.Write(ServerFile, JsonUtility.ToJson(_db));

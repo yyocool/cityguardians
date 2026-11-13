@@ -71,6 +71,10 @@ namespace CityGuardians.Gameplay
         public const string LockResult = "result";
         /// <summary>지도가 열려 있는 동안.</summary>
         public const string LockMap = "map";
+        /// <summary>쿠폰을 상점에 보여 주는 화면이 떠 있는 동안.</summary>
+        public const string LockCoupon = "coupon";
+        /// <summary>협동 방어전의 전술 지도를 펼쳐 둔 동안.</summary>
+        public const string LockTacticalMap = "tactical_map";
 
         private static readonly HashSet<string> Locks = new HashSet<string>();
 

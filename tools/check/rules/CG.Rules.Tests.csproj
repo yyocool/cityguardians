@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unity 없이 규칙 코드를 컴파일하고 테스트한다 (docs/TEST_PLAN.md).
+    대상: client/Assets/CityGuardians 의 Domain, Services 와 EditMode 테스트 가운데 Unity 장면이 필요 없는 것.
+    Unity 의 JsonUtility 는 stubs/JsonUtilityShim.cs 가 대신한다.
+    Unity 에디터의 EditMode 테스트를 대신하지 않는다. 같은 테스트를 더 빨리, Unity 가 없는 PC 에서도 돌리는 수단이다.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- Unity 6 의 C# 과 같은 수준으로 맞춘다. 더 새로운 문법을 쓰면 여기서 걸린다. -->
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RootNamespace>CityGuardians</RootNamespace>
+    <AssemblyName>CG.Rules.Tests</AssemblyName>
+    <NoWarn>$(NoWarn);CS0649;CS0414;CS0169;NUnit2005;NUnit2006;NUnit2007</NoWarn>
+    <DefineConstants>$(DefineConstants);UNITY_INCLUDE_TESTS;CG_DOTNET_CHECK</DefineConstants>
+    <ClientRoot>..\..\..\client\Assets\CityGuardians</ClientRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(ClientRoot)\Domain\**\*.cs" LinkBase="Domain" />
+    <Compile Include="$(ClientRoot)\Services\**\*.cs" LinkBase="Services" />
+    <!-- FileTextStore 는 UnityEngine 없이도 되는 System.IO 코드다. -->
+    <Compile Include="$(ClientRoot)\Tests\EditMode\**\*.cs" LinkBase="Tests" />
+    <!-- 지도 도형 데이터 테스트는 Unity 의 Resources 와 Gameplay 계층이 필요하다. Unity 에서만 돈다. -->
+    <Compile Remove="$(ClientRoot)\Tests\EditMode\MapDataTests.cs" />
+    <Compile Include="..\stubs\JsonUtilityShim.cs" Link="Stubs\JsonUtilityShim.cs" />
+    <!-- 서버 응답의 표본(server/tests/fixtures/client-wire.json)과 클라이언트 DTO 를 대조한다. Unity 프로젝트에는 들어가지 않는다. -->
+    <Compile Include="WireContractTests.cs" />
+    <!-- 대시보드의 키(F6~F9, 왼쪽 Alt)가 기존 키와 겹치지 않는지 소스에서 확인한다. Unity 프로젝트에는 들어가지 않는다. -->
+    <Compile Include="KeyBindingTests.cs" />
+  </ItemGroup>
+
+</Project>

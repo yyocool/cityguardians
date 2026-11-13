@@ -1,6 +1,8 @@
 # COMBAT_SYSTEM — 3D 액션 전투
 
-> 기준 v6.0 · 2026-11-13 · 상태: 근접·원거리 무기 2종, 체력과 쓰러짐, 사냥과 방어전의 보상 검증을 클라이언트와 모의 서버에 구현 (원거리 무기는 3.1장). 방어구·강화·NPC 협동은 설계 · 수치는 초기값
+> 기준 v8.0 · 2026-11-13 · 상태: 근접·원거리 무기 2종, 체력과 쓰러짐, 사냥과 방어전의 보상 검증을 클라이언트와 모의 서버에 구현 (원거리 무기는 3.1장). 방어구·강화·NPC 협동은 설계 · 수치는 초기값
+>
+> **v8.0에서 더한 것**: 세 전투 모드(디펜스·헌트·FPS)가 함께 쓰는 공통 전투 시스템(12장)과 모드 컨트롤러·카메라(13장), 그리고 PHP 서버의 검증. 1~11장은 v6.0의 3인칭 전투(지금의 헌트 모드와 디펜스 모드의 직접 전투)에 대한 내용이고 그대로 유효합니다. 모드별 문서: [DEFENSE_MODE](DEFENSE_MODE.md), [HUNT_MODE](HUNT_MODE.md), [FPS_MODE](FPS_MODE.md)
 
 ## 1. 방향
 
@@ -119,6 +121,8 @@
 
 전투 판정은 클라이언트에서 일어나므로, 서버는 **보상을 줄 때** 검증합니다. 보상 금액은 항상 서버가 계산합니다.
 
+> v8.0: 아래의 규칙이 PHP 서버에 구현되었습니다 (`server/src/Domain/Hunt.php`, `Battle.php`, `Fps.php`). 실제 경로는 `POST /hunt/sessions`, `POST /hunt/sessions/{id}/report`, `POST /defense/battles`, `POST /defense/battles/{id}/finish`입니다 ([API_SPEC](API_SPEC.md) 15장). FPS 임무의 검증은 [FPS_MODE](FPS_MODE.md) 7장에 있습니다.
+
 ### 10.1 거리 사냥
 
 1. 전투 구역에 들어가면 `POST /hunts` 로 사냥 세션을 엽니다.
@@ -156,3 +160,136 @@
 | 스킬, 무기 조합 | 추후 |
 | 글리치 생명체, ZERO 코어 | 지역 이벤트·시즌 |
 | 다른 플레이어와 협동 전투 | 실시간 서버 도입 후 |
+
+v8.0에서 일부가 진행되었습니다: 건설 메카는 방어전에 구현되어 있고, 전투 장비의 강화는 FPS 장비에 구현되었습니다 ([EQUIPMENT_SYSTEM](EQUIPMENT_SYSTEM.md)). 보안 드론, 방어구, 글리치 생명체는 그대로 남아 있습니다.
+
+## 12. 공통 전투 시스템 (v8.0)
+
+전투 모드는 셋이고 조작과 규칙이 서로 다릅니다. 그러나 **플레이어의 것은 하나**입니다.
+
+| 모드 | 무엇 | 시점 | 문서 |
+|---|---|---|---|
+| 디펜스 `defense` | 타워를 세워 외곽으로 몰려오는 웨이브를 막는다 | 3인칭 ↔ 전략 시점 (V) | [DEFENSE_MODE](DEFENSE_MODE.md) |
+| 헌트 `hunt` | 도시 주변을 다니며 로봇을 사냥한다 | 3인칭 | [HUNT_MODE](HUNT_MODE.md) |
+| FPS `fps` | 시내로 들어온 로봇을 막고 시설과 시민을 지킨다 | 1인칭 | [FPS_MODE](FPS_MODE.md) |
+
+### 12.1 함께 쓰는 것과 저장하는 곳
+
+모드별로 따로 저장하는 값이 없습니다. 아래의 값은 각각 한 곳에만 있고 세 모드가 그것을 읽고 씁니다.
+
+| 함께 쓰는 것 | 서버 | 클라이언트 |
+|---|---|---|
+| 계정 | `players` | `GameSession` |
+| 캐릭터, 레벨, 경험치 | `characters` | `GameSession.Me` |
+| GC | `wallets` + `ledger_entries` (사유로 모드를 구분) | `Me.gc` |
+| 인벤토리 | v6.0의 가방 (서버에는 아직 없음) | `InventorySystem` → `GameSession` |
+| 전투 장비 | `player_combat_equipment` (가진 것 한 번), `combat_loadouts` (모드·칸별 장착) | `EquipmentSystem` |
+| 해금한 타워 | `player_defense_structures` | `Me.unlockedTowers` |
+| 도시 소속 | `players.region_id` 하나 | `Me.regionCode` |
+| 도시 기여도 | `region_contributions` (도시별·플레이어별), `city_risk_status.contribution` (도시 합계) | `Me.cityContribution` |
+| 전투 결과 | 모드별 기록 테이블 (`defense_battles`, `hunt_sessions`, `fps_mission_results`) → **같은 함수**로 도시에 반영 | 응답의 `city` |
+| 도시 위험도 | `city_risk_status` + `city_risk_history` | `CityRiskService` |
+
+전투 결과의 기록만 모드별 테이블에 있는 것은 보고의 내용이 모드마다 다르기 때문입니다 (웨이브와 방어 체력 / 순번이 있는 처치 보고 / 시설과 시민). 그 결과가 **보상·경험치·도시에 반영되는 길은 하나**입니다.
+
+```
+모드별 검증 (Battle / Hunt / Fps)
+        │  인정된 결과
+        ▼
+Wallets.apply (원장)  ·  Players.addXp (레벨)  ·  CityService.applyCombat / applyHunt (위험도·기여도·침공 진행도)
+```
+
+테스트 `testAllThreeModesShareOneWalletOneLevelAndOneCity`가 한 플레이어로 세 모드를 차례로 하고 지갑·레벨·도시가 하나로 이어지는지 확인합니다.
+
+### 12.2 공통 서비스 (Unity)
+
+`Gameplay/Combat/CombatServices.cs`. 지시서의 이름을 그대로 썼습니다.
+
+| 서비스 | 맡는 일 |
+|---|---|
+| `CombatService` | 지금의 전투 모드(`ActiveMode`), 모드가 열려 있는지, FPS 임무의 시작과 결과 보고 |
+| `RewardService` | 서버 응답의 보상·도시 반영을 화면의 글로 바꿈 (결과 화면의 줄, 사냥 중의 알림) |
+| `CityRiskService` | 서버가 준 전국 위험도를 받아 두고 내어 줌, 시설 복구와 기금 요청, 단계의 색·모양·글자 |
+| `RegionService` | 지역 이름, 랭킹, 지원 요청 받기·나서기·돌아오기 |
+| `InventorySystem` | 가방 조회와 수리 키트 사용 (기존 `ItemActions`의 창구) |
+| `EquipmentSystem` | 전투 장비의 구매·강화·장착과 장비 상점 메뉴 |
+| `CharacterController` 역할 | 기존 `PlayerController`. 세 모드가 같은 것을 씁니다. Unity에 같은 이름의 내장 컴포넌트가 있어 이름은 바꾸지 않았습니다 |
+
+**어느 서비스도 값을 스스로 확정하지 않습니다.** 보상, 장비 구매, 위험도는 모두 서버 응답을 받아 반영합니다. 클라이언트에는 위험도 숫자를 보내는 요청이 없습니다.
+
+### 12.3 공통 서비스 (서버)
+
+| 서비스 | 맡는 일 |
+|---|---|
+| `CombatService` | 전투 모드 목록, 장비 목록·구매·강화·장착, 전투 시작과 결과의 공통 경로, 보상 조회 |
+| `DefenseService` / `HuntService` / `FpsService` | 모드별 시작·검증·기록 |
+| `CityService` | 위험도, 침공, 랭킹, 지원. **위험도를 바꾸는 유일한 곳** (`changeRisk`) |
+| `Wallets` | GC 증감과 원장. 잔액이 모자라면 거절 |
+| `Players` | 레벨·경험치, 활성 가디언 표시, 전투 상태 |
+| `Daily` | 한국 날짜 기준의 하루 한도 (사냥 GC, FPS 보상 횟수, 내린 위험도, 복구 횟수, 기금) |
+| `Idempotency` | GC가 바뀌는 요청이 두 번 처리되지 않게 |
+
+공통 경로 `POST /combat/sessions`와 `POST /combat/sessions/{id}/result`는 모드에 맞는 서비스로 넘겨 줄 뿐이고, 모드별 경로(`/defense/battles`, `/hunt/sessions`, `/fps/missions/{code}/start`)와 같은 일을 합니다.
+
+### 12.4 화면
+
+`CombatHud`가 모든 전투 장면의 왼쪽 위에 도시 위험도를 보여 줍니다: 도시 이름, 위험도 숫자, 단계의 모양과 글자(● 안전 · ▲ 주의 · ◆ 위험 · ■ 긴급), 진행 중인 침공과 진행도. 색만으로 단계를 알리지 않습니다.
+
+## 13. 모드 컨트롤러와 카메라 (v8.0)
+
+`Gameplay/Combat/CombatModes.cs`, `CombatCameras.cs`.
+
+### 13.1 모드 컨트롤러
+
+전투 장면마다 모드 컨트롤러가 하나 있습니다. 모드마다 **다른 것만** 맡습니다: 카메라, 입력의 뜻, 조작 안내, 모드 고유의 규칙과의 연결.
+
+| 컨트롤러 | 장면 | 맡는 일 | 규칙을 가진 곳 (기존 코드) |
+|---|---|---|---|
+| `DefenseModeController` | `Defense` | V로 3인칭 ↔ 전략 시점, 시점에 맞는 조작 안내 | `DefenseBattle`, `DefenseTower` |
+| `HuntModeController` | `City` (사냥 구역) | 소속 도시의 위험 단계에 맞춰 로봇 수를 늘림, 사냥이 도시에 반영된 결과를 알림 | `HuntZone` |
+| `FPSModeController` | `Fps` | 1인칭 카메라, 무기 붙이기, 조작 안내 | `FpsMission`, `FpsWeapon` |
+
+- 컨트롤러가 켜지면 `CombatService.Active`가 되고 꺼지면 비워집니다. 화면과 다른 코드는 `CombatService.ActiveMode`로 지금의 모드를 압니다.
+- 기존의 전투 코드(`DefenseBattle`, `HuntZone`)는 고치지 않고 컨트롤러를 옆에 붙였습니다. v6.0의 기능과 테스트를 지키기 위해서입니다.
+
+### 13.2 카메라
+
+| 지시서의 이름 | 구현 | 쓰는 모드 |
+|---|---|---|
+| `ThirdPersonCamera` | 기존 `OrbitCamera` (기존 코드와 테스트가 쓰는 이름이라 그대로 둠) | 헌트, 디펜스(처음) |
+| `FirstPersonCamera` | `FirstPersonCamera` | FPS |
+| `DefenseCamera` | `DefenseCamera` (쿼터뷰, 회전·줌) | 디펜스(V) |
+
+세 카메라는 같은 카메라 오브젝트에 붙어 있고 `CameraRig.Use(kind)`가 하나만 켭니다. 바꿀 때 보던 방향을 이어 가고, 1인칭이 숨겨 둔 캐릭터의 몸은 다른 카메라로 바뀔 때 다시 보입니다. 모드의 첫 카메라는 전투 모드 정의의 `camera` 값에서 읽습니다.
+
+### 13.3 입력
+
+입력은 `PlayerInputHub` 하나를 세 모드가 함께 씁니다. 모드에 따라 같은 입력의 뜻이 달라집니다.
+
+| 입력 | 헌트 | 디펜스 | FPS |
+|---|---|---|---|
+| WASD, Shift, Space | 이동, 달리기, 점프 | 같음 | 같음 |
+| 마우스 이동 | 카메라 돌리기 | 카메라 돌리기 | 겨누기 |
+| 마우스 왼쪽 | 무기 공격 | 무기 공격 | 발사 |
+| 마우스 오른쪽 | — | — | 조준 |
+| E | 상호작용 | 타워 세우기·강화, 신호기 | 시민 대피, 문 |
+| R | — | — | 재장전 |
+| Q / F | — | — | 보조 장치 / 지원 장비 |
+| V | — | 시점 바꾸기 | — |
+| 1 · 2 · 3 | 무기 바꾸기, 수리 키트 | 같음 | — |
+
+### 13.4 FPS와 헌트가 함께 쓰는 코드
+
+| 코드 | 내용 |
+|---|---|
+| `PlayerController` | 이동·점프·달리기·쓰러짐과 다시 일어남. "카메라가 보는 쪽" 기준으로 걷기 때문에 카메라만 바꿔도 맞게 움직입니다 |
+| `Health` | 체력과 피해 (보호막은 여기에 `barrier`로 더함) |
+| `EnemyAgent`, 적의 행동 규칙 | 같은 로봇이 사냥터와 FPS 구역에 나옵니다. FPS에서는 길(`FpsRoute`)을 따라 시설로 가다가 플레이어가 가까우면 덤빕니다 |
+| `Interactable` | E 상호작용 |
+| `RewardService`, `CityRiskService` | 결과 알림과 위험도 |
+
+다른 것은 무기입니다: 헌트는 v6.0의 `PlayerCombat`(가방의 무기), FPS는 `FpsWeapon`(장착한 전투 장비).
+
+### 13.5 구현 상태
+
+12~13장의 Unity 코드는 **컴파일 형식 검사(`tools/check/unity`)만 통과했고 Unity에서 실행해 보지 못했습니다.** 규칙(`Domain`)과 모의 서버는 `tools/check/rules`의 테스트로, PHP 서버는 `server/tests`로 확인했습니다 ([TEST_PLAN](TEST_PLAN.md)).

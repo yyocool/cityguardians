@@ -175,7 +175,9 @@ namespace CityGuardians.Gameplay
             transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             _controller.enabled = true;
             _verticalVelocity = 0f;
-            if (OrbitCamera.Instance != null) OrbitCamera.Instance.SnapBehind(yaw);
+            // 켜져 있는 카메라만 옮긴다 (1인칭·전략 시점일 때 3인칭 카메라가 화면을 가져가지 않게).
+            if (OrbitCamera.Instance != null && OrbitCamera.Instance.enabled) OrbitCamera.Instance.SnapBehind(yaw);
+            if (FirstPersonCamera.Instance != null) FirstPersonCamera.Instance.SnapTo(yaw);
         }
 
         /// <summary>바라보는 방향을 바로 돌린다 (조준 보조).</summary>

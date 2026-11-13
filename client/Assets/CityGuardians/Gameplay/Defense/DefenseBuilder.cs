@@ -63,6 +63,7 @@ namespace CityGuardians.Gameplay
 
         public DefenseBattle Battle { get; private set; }
         public BuildSlot[] Slots { get; private set; }
+        public DefenseModeController Mode { get; private set; }
 
         private PlayerController _player;
         private ObjectiveMarker _marker;
@@ -109,7 +110,8 @@ namespace CityGuardians.Gameplay
             _marker.transform.SetParent(actors, true);
             _marker.transform.localScale = Vector3.one * 1.8f;
 
-            GameEvents.SetKeyHint("E  타워 세우기·강화      마우스 왼쪽 버튼  공격      Shift  달리기");
+            // 디펜스 모드: 시점 전환(V)과 조작 안내를 맡는다. 전투 규칙은 DefenseBattle 그대로다.
+            Mode = DefenseModeController.Create(actors.gameObject, Battle);
         }
 
         private void OnDestroy()

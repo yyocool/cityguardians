@@ -14,6 +14,10 @@ namespace CityGuardians.Gameplay
         public const string City = "City";
         /// <summary>방어전 전장 "외곽 1구역".</summary>
         public const string Defense = "Defense";
+        /// <summary>FPS 임무 전장 "도심 상가 구역".</summary>
+        public const string Fps = "Fps";
+        /// <summary>협동 방어전 전장 (v9.0). 여러 대원이 함께 관문을 지킨다.</summary>
+        public const string Coop = "Coop";
     }
 
     public static class SpawnIds
@@ -28,6 +32,10 @@ namespace CityGuardians.Gameplay
         public const string DefenseGate = "defense_gate";
         /// <summary>방어전 전장: 방어 거점 앞.</summary>
         public const string DefenseBase = "defense_base";
+        /// <summary>FPS 임무 전장: 가운데 광장.</summary>
+        public const string FpsPlaza = "fps_plaza";
+        /// <summary>협동 방어전 전장: 관문 앞.</summary>
+        public const string CoopBase = "coop_base";
     }
 
     /// <summary>
@@ -63,6 +71,16 @@ namespace CityGuardians.Gameplay
         private string _bootFailCode;
         private IGameBackend _backend;
 
+        /// <summary>전투 모드와 도시 현황처럼 접속마다 새로 받아야 하는 것을 비운다.</summary>
+        private static void ResetCombatState()
+        {
+            CombatService.ResetState();
+            CityRiskService.ResetState();
+            RegionService.ResetState();
+            HuntZone.ExtraAlive = 0;
+            CoopLaunch.Discard();
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Initialize()
         {
@@ -71,6 +89,7 @@ namespace CityGuardians.Gameplay
             GameSession.End();
             AttackSlots.Clear();
             ItemActions.ResetState();
+            ResetCombatState();
             PendingSpawn = SpawnIds.Bed;
 
             var go = new GameObject("GameRoot");
@@ -80,6 +99,9 @@ namespace CityGuardians.Gameplay
             go.AddComponent<ChoiceMenu>();
             go.AddComponent<MapController>();
             go.AddComponent<BagController>();
+            go.AddComponent<CouponPresenter>();
+            go.AddComponent<PhoneController>();
+            go.AddComponent<LiveDashboardController>();
             Sfx.Attach(go);
             TimeFx.Attach(go);
         }
@@ -103,7 +125,7 @@ namespace CityGuardians.Gameplay
 
             try
             {
-                _backend = new LocalMockBackend(new FileTextStore(StorageDirectory), ClockOverride ?? new SystemClock(),
+                _backend = new LocalMockBackend(new FileTextStore(StorageDirectory), ClockOverride ?? new Services.SystemClock(),
                     DefsOverride);
             }
             catch (System.Exception e)
@@ -140,6 +162,7 @@ namespace CityGuardians.Gameplay
             StopAllCoroutines();
             HuntZone.FlushAll();
             DialogueRunner.Instance.CloseSilently();
+            CouponPresenter.Instance.CloseSilently();
             MapController.Instance.Close();
             ChoiceMenu.Instance.Close();
             _transitioning = false;
@@ -148,6 +171,7 @@ namespace CityGuardians.Gameplay
             _backend = null;
             GameSession.End();
             GameState.ClearAll();
+            ResetCombatState();
             GameEvents.SetObjective(null);
             GameEvents.SetKeyHint(null);
             GameEvents.RequestFade(false, 0f);
@@ -171,6 +195,7 @@ namespace CityGuardians.Gameplay
             // 떠나기 전에 남은 사냥 보고를 보낸다.
             HuntZone.FlushAll();
             DialogueRunner.Instance.CloseSilently();
+            CouponPresenter.Instance.CloseSilently();
             MapController.Instance.Close();
             ChoiceMenu.Instance.Close();
             GameEvents.SetPrompt(null);
@@ -252,9 +277,11 @@ namespace CityGuardians.Gameplay
         private void UpdateCursor()
         {
             if (Application.isBatchMode) return;
-            // 지도는 마우스로 가리키는 화면이라 커서를 풀어 둔다.
+            // 지도와 전술 지도는 마우스로 가리키는 화면이라 커서를 풀어 둔다.
+            // 대시보드의 카드를 마우스로 누르려고 Alt 를 누르고 있는 동안에도 풀어 둔다.
             bool playing = GameSession.Current != null && !GameState.IsPaused && !BootHasFailed && Application.isFocused
-                           && !MapController.Instance.IsOpen;
+                           && !MapController.Instance.IsOpen && !GameState.IsLockedBy(GameState.LockTacticalMap)
+                           && !LiveDashboardController.Instance.PointerMode;
             CursorLockMode wanted = playing ? CursorLockMode.Locked : CursorLockMode.None;
             if (Cursor.lockState != wanted) Cursor.lockState = wanted;
             if (Cursor.visible == playing) Cursor.visible = !playing;

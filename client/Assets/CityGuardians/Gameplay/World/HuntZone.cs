@@ -19,6 +19,12 @@ namespace CityGuardians.Gameplay
 
         public static readonly List<HuntZone> All = new List<HuntZone>();
 
+        /// <summary>
+        /// 도시 위험도가 높을 때 전투 구역마다 더 나오는 로봇 수 (docs/HUNT_MODE.md 4장). 헌트 모드가 정한다.
+        /// 보상은 여전히 서버가 구역의 처치 허용량 안에서만 인정한다.
+        /// </summary>
+        public static int ExtraAlive;
+
         /// <summary>플레이어가 적을 쓰러뜨린 순간 (연출용). 보상은 아직 확정되지 않았다.</summary>
         public static event Action<HuntZone, EnemyDef> PlayerKill;
         /// <summary>서버가 보고를 처리한 뒤.</summary>
@@ -87,7 +93,7 @@ namespace CityGuardians.Gameplay
             if (GameSession.Current == null) return;
             EnsureSession();
 
-            if (_autoSpawn && _alive.Count < Def.maxAlive && Time.time >= _nextSpawnAt)
+            if (_autoSpawn && _alive.Count < Def.maxAlive + Mathf.Max(0, ExtraAlive) && Time.time >= _nextSpawnAt)
             {
                 bool filling = _spawnedTotal < Def.maxAlive;
                 if (TrySpawnRandom()) _nextSpawnAt = Time.time + (filling ? 0.3f : Def.respawnSeconds);

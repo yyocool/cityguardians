@@ -1,6 +1,8 @@
 # GAME_DESIGN — 게임 디자인
 
 > 기준 v6.0 (PROJECT ZERO) · 2026-11-13 · 상태: 설계 (미구현) · 수치는 플레이테스트로 조정할 초기값
+>
+> v8.0 (2026-11-13): 전투가 세 모드(디펜스 · 헌트 · FPS)로 나뉘고, 전투 결과가 도시 위험도와 전국 지역 경쟁에 반영됩니다. 세계관과 핵심 루프는 그대로입니다. [COMBAT_SYSTEM](COMBAT_SYSTEM.md) 12~13장, [DEFENSE_MODE](DEFENSE_MODE.md), [HUNT_MODE](HUNT_MODE.md), [FPS_MODE](FPS_MODE.md), [CITY_RISK_SYSTEM](CITY_RISK_SYSTEM.md), [REGIONAL_COMPETITION](REGIONAL_COMPETITION.md), [EQUIPMENT_SYSTEM](EQUIPMENT_SYSTEM.md), [COMBAT_ECONOMY](COMBAT_ECONOMY.md). 구현 상태는 [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md)의 "v8.0 구현 기록".
 
 ## 1. 한 줄 설명
 

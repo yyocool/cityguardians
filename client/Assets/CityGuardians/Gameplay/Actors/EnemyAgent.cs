@@ -84,6 +84,10 @@ namespace CityGuardians.Gameplay
         public float RouteProgress { get; private set; }
         /// <summary>쓰러졌거나 사라지는 중인가.</summary>
         public bool IsGone => _gone;
+        /// <summary>
+        /// 길을 따라가는 동안에도 이 거리 안의 플레이어는 알아채고 덤빈다. 0이면 맞았을 때만 덤빈다 (방어전).
+        /// </summary>
+        public float noticeRange;
 
         private EnemyBrain _brain;
         private NavMeshAgent _agent;
@@ -108,6 +112,10 @@ namespace CityGuardians.Gameplay
         private int _marchIndex = -1;
         private float _aggroUntil;
         private IStructure _structureTarget;
+
+        private float _stunUntil = -1f;
+        private float _slowUntil = -1f;
+        private float _slowFactor = 1f;
 
         public static EnemyAgent Spawn(EnemyDef def, Vector3 position, IEnemyOwner owner, System.Random rng)
         {
@@ -161,6 +169,11 @@ namespace CityGuardians.Gameplay
         {
             _route = route;
             _routeIndex = 0;
+            // 가던 길을 버리고 새 길을 잡는다 (FPS 임무에서 목표 시설이 바뀔 때 다시 불린다).
+            _routeMove = RouteMove.None;
+            _marchIndex = -1;
+            // 첫 경유지를 "지나쳤는지"는 길을 잡은 자리에서부터 잰다.
+            _home = transform.position;
             _routeOffset = new Vector3(lateralOffset.x, 0f, lateralOffset.z);
             _agent.autoBraking = false;
             // 길 위에서 서로 밀치느라 멈추지 않게 한다.
@@ -168,10 +181,60 @@ namespace CityGuardians.Gameplay
             if (route.Waypoints.Count > 0) Face(route.Waypoints[0], 360f);
         }
 
+        // ── 상태 이상 (EMP, 감속 장치) ───────────────────────────
+
+        /// <summary>전자기 충격으로 멈춰 있는가.</summary>
+        public bool IsStunned => Time.time < _stunUntil;
+        /// <summary>감속 장치에 걸려 느려져 있는가.</summary>
+        public bool IsSlowed => Time.time < _slowUntil;
+
+        /// <summary>지금의 이동 속도. 감속 중이면 느리다.</summary>
+        private float MoveSpeed => Def.moveSpeed * (IsSlowed ? _slowFactor : 1f);
+
+        /// <summary>
+        /// 잠깐 멈춘다 (EMP 타워, EMP 장치). 그동안 걷지도 공격하지도 않는다.
+        /// 멈칫하지 않는 큰 로봇(보스)은 멈추지 않는다.
+        /// </summary>
+        public void Stun(float seconds)
+        {
+            if (_gone || seconds <= 0f || Def.staggerImmune) return;
+            _stunUntil = Mathf.Max(_stunUntil, Time.time + seconds);
+            _visual.CancelWindup();
+            // 하려던 공격을 끊는다. 풀린 뒤에 예고 없이 때리지 않게 한다.
+            _brain.OnDamaged(true);
+            AttackSlots.Release(this);
+        }
+
+        /// <summary>잠깐 느려진다 (감속 장치). factor 는 남는 속도의 비율이다 (0.6이면 40% 느려진다).</summary>
+        public void Slow(float factor, float seconds)
+        {
+            if (_gone || seconds <= 0f) return;
+            factor = Mathf.Clamp(factor, 0.2f, 1f);
+            // 큰 로봇은 절반만 느려진다.
+            if (Def.staggerImmune) factor = 1f - (1f - factor) * 0.5f;
+            // 겹쳐 걸리면 더 느린 쪽을 따른다.
+            _slowFactor = IsSlowed ? Mathf.Min(_slowFactor, factor) : factor;
+            _slowUntil = Mathf.Max(_slowUntil, Time.time + seconds);
+        }
+
         private void Update()
         {
             float dt = Time.deltaTime;
             if (dt <= 0f || _gone || _brain.State == EnemyState.Dead) return;
+
+            if (IsStunned)
+            {
+                // 멈춰 있는 동안에는 생각도 하지 않는다. 풀리면 가던 길을 다시 잡는다.
+                if (_agent.enabled && _agent.isOnNavMesh)
+                {
+                    ApplyKnock(dt);
+                    if (_agent.hasPath) Halt();
+                }
+                _routeMove = RouteMove.None;
+                _lastMove = EnemyMove.None;
+                _visual.speed = 0f;
+                return;
+            }
 
             if (_route != null) UpdateOnRoute(dt);
             else UpdateInZone(dt);
@@ -243,7 +306,7 @@ namespace CityGuardians.Gameplay
                     break;
 
                 case EnemyMove.ToTarget:
-                    _agent.speed = Def.moveSpeed;
+                    _agent.speed = MoveSpeed;
                     if (Time.time >= _nextRepath || _lastMove != EnemyMove.ToTarget)
                     {
                         _nextRepath = Time.time + RepathInterval;
@@ -252,12 +315,12 @@ namespace CityGuardians.Gameplay
                     break;
 
                 case EnemyMove.ToHome:
-                    _agent.speed = Def.moveSpeed;
+                    _agent.speed = MoveSpeed;
                     if (_lastMove != EnemyMove.ToHome) _agent.SetDestination(_home);
                     break;
 
                 case EnemyMove.Wander:
-                    _agent.speed = Def.moveSpeed * 0.45f;
+                    _agent.speed = MoveSpeed * 0.45f;
                     if (!_hasWanderGoal)
                     {
                         Vector2 offset = Random.insideUnitCircle * WanderRadius;
@@ -288,9 +351,11 @@ namespace CityGuardians.Gameplay
             float distance = float.MaxValue;
             _structureTarget = null;
 
-            if (playerAlive && Time.time < _aggroUntil)
+            float toPlayer = playerAlive ? PlanarDistance(transform.position, player.transform.position) : float.MaxValue;
+            // 가까이 온 플레이어는 맞지 않았어도 알아챈다 (FPS 임무). 방어전에서는 0이라 쓰이지 않는다.
+            bool noticed = playerAlive && noticeRange > 0f && toPlayer <= noticeRange;
+            if (playerAlive && (Time.time < _aggroUntil || noticed))
             {
-                float toPlayer = PlanarDistance(transform.position, player.transform.position);
                 if (toPlayer <= Def.loseRange)
                 {
                     hasTarget = true;
@@ -391,7 +456,7 @@ namespace CityGuardians.Gameplay
             }
 
             Vector3 target = RoutePoint(_routeIndex);
-            _agent.speed = Def.moveSpeed;
+            _agent.speed = MoveSpeed;
             if (_routeMove != RouteMove.March || _marchIndex != _routeIndex)
             {
                 _routeMove = RouteMove.March;
@@ -414,7 +479,7 @@ namespace CityGuardians.Gameplay
 
         private void Seek(Vector3 targetPosition)
         {
-            _agent.speed = Def.moveSpeed;
+            _agent.speed = MoveSpeed;
             if (_routeMove != RouteMove.Seek || Time.time >= _nextRepath)
             {
                 _routeMove = RouteMove.Seek;
@@ -506,6 +571,7 @@ namespace CityGuardians.Gameplay
                 float toPlayer = PlanarDistance(player.transform.position, center);
                 if (toPlayer <= Def.strikeRadius) player.Health.TakeDamage(Def.damage, gameObject);
                 if (toPlayer <= 14f && OrbitCamera.Instance != null) OrbitCamera.Instance.Shake(0.14f);
+                if (toPlayer <= 14f && FirstPersonCamera.Instance != null) FirstPersonCamera.Instance.Shake(0.14f);
             }
 
             if (_route == null) return;

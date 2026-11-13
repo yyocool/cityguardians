@@ -1,0 +1,112 @@
+/* CITY GUARDIANS 홈페이지(CITY PASS · SCHOLARSHIP)와 상점 확인 화면.
+   스크립트·외부 글꼴·외부 그림을 쓰지 않는다. 좁은 화면(휴대전화)을 먼저 맞추고, 넓으면 옆으로 편다. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 16px/1.6 "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #1b2330; background: #f4f6f9; }
+a { color: #1a4f96; }
+a:focus, button:focus, input:focus, select:focus, textarea:focus, summary:focus { outline: 3px solid #e08a00; outline-offset: 2px; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 8px; top: 8px; padding: 8px 12px; background: #fff; z-index: 10; }
+
+header.top { background: #18263a; color: #dfe7f2; padding: 12px 16px; }
+header.top a { color: #fff; }
+header.top .brand { margin: 0 0 8px; font-weight: bold; font-size: 18px; }
+header.top .brand a { text-decoration: none; }
+header.top nav .group { margin: 8px 0; }
+header.top nav .group p { margin: 0; font-size: 12px; letter-spacing: .08em; color: #a9b8cc; }
+header.top nav ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+header.top nav li a { display: inline-block; padding: 6px 0; }
+header.top .who { margin: 8px 0 0; font-size: 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+header.top form { margin: 0; }
+
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { margin: 0 0 16px; font-size: 26px; line-height: 1.3; }
+h2 { margin: 32px 0 10px; font-size: 20px; border-bottom: 1px solid #cfd8e3; padding-bottom: 4px; }
+h3 { margin: 20px 0 8px; font-size: 17px; }
+.lead { font-size: 18px; }
+.prose { white-space: normal; }
+.muted, .empty, small { color: #4d5b70; }
+footer { max-width: 860px; margin: 0 auto; padding: 16px; border-top: 1px solid #cfd8e3; color: #4d5b70; font-size: 13px; }
+
+dl { margin: 12px 0; }
+dt { font-weight: bold; margin-top: 8px; }
+dd { margin: 0 0 4px; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+
+.card { background: #fff; border: 1px solid #d5dce6; border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+.card h2, .card h3 { margin: 0 0 6px; border: 0; padding: 0; font-size: 18px; }
+.card img { max-width: 100%; height: auto; border-radius: 6px; margin: 6px 0; }
+.branches { list-style: none; padding: 0; margin: 10px 0 0; }
+.branches li { padding: 8px 0; border-top: 1px dashed #d5dce6; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #e9eef5; color: #2c3a4f; font-size: 13px; font-weight: normal; white-space: nowrap; }
+.tag.strong { background: #1f4f8f; color: #fff; }
+
+.soon { margin: 16px 0; padding: 12px 16px; border: 2px dashed #7a5a00; background: #fff8dc; border-radius: 8px; }
+.soon p { margin: 4px 0 0; }
+.notice { margin: 16px 0; padding: 12px 16px; border: 2px solid #1e7a3c; background: #e8f6ec; border-radius: 8px; }
+.notice p { margin: 4px 0 0; }
+.problems { margin: 16px 0; padding: 12px 16px; border: 2px solid #b3261e; background: #fdecea; border-radius: 8px; }
+.problems ul { margin: 6px 0 0; }
+.present { margin: 16px 0; padding: 14px 16px; border: 2px solid #1f4f8f; background: #eef4fc; border-radius: 8px; }
+.present h2 { margin: 0 0 8px; border: 0; padding: 0; }
+.code-big { margin: 8px 0; font: bold 34px/1.2 Consolas, "Courier New", monospace; letter-spacing: .12em; text-align: center; word-break: break-all; }
+.link { font: 14px/1.5 Consolas, "Courier New", monospace; word-break: break-all; background: #fff; padding: 8px; border: 1px solid #c3cfdf; border-radius: 4px; }
+.big { font-size: 40px; font-weight: bold; margin: 4px 0; }
+.big small { font-size: 16px; font-weight: normal; }
+
+.pass-card { max-width: 420px; margin: 16px 0; padding: 18px 20px; border-radius: 14px; background: #18263a; color: #fff; }
+.pass-card p { margin: 4px 0; }
+.pass-card .label { font-size: 12px; letter-spacing: .14em; color: #a9b8cc; }
+.pass-card .name { font-size: 24px; font-weight: bold; }
+.pass-card .no { font: 18px/1.4 Consolas, "Courier New", monospace; letter-spacing: .08em; }
+
+.steps { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
+.steps li { margin: 0; padding: 6px 12px; border: 1px solid #c3cfdf; border-radius: 16px; background: #fff; color: #4d5b70; }
+.steps li.done { background: #e8f6ec; border-color: #1e7a3c; color: #145a2a; }
+.steps li.done::before { content: "✓ "; }
+.steps li.now { background: #1f4f8f; border-color: #1f4f8f; color: #fff; font-weight: bold; }
+
+/* 폼: 손가락으로 누르기 쉬운 크기. */
+form { margin: 12px 0; }
+fieldset { border: 1px solid #c3cfdf; border-radius: 8px; margin: 16px 0; padding: 8px 14px 12px; background: #fff; }
+legend { font-weight: bold; padding: 0 6px; }
+.field { margin: 12px 0; }
+.field label { font-weight: bold; }
+.field small { font-weight: normal; }
+input[type=text], input[type=password], input[type=email], input[type=tel], input[type=url], select, textarea {
+  display: block; width: 100%; max-width: 520px; margin-top: 4px; padding: 10px; font: inherit; border: 1px solid #8a98ad; border-radius: 6px; background: #fff; }
+textarea { max-width: 100%; }
+input.code { max-width: 300px; font: bold 24px/1.2 Consolas, "Courier New", monospace; letter-spacing: .1em; text-transform: uppercase; }
+input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; }
+button, a.button { display: inline-block; min-height: 44px; padding: 10px 20px; font: inherit; font-weight: bold; text-decoration: none; cursor: pointer;
+  border: 1px solid #1f4f8f; background: #2563a8; color: #fff; border-radius: 6px; }
+button.plain { min-height: 0; padding: 4px 10px; font-weight: normal; background: transparent; border-color: #a9b8cc; color: #fff; }
+form.filter { display: flex; flex-wrap: wrap; gap: 0 16px; align-items: flex-end; }
+form.filter select { min-width: 160px; }
+details { margin: 8px 0; padding: 8px 12px; border: 1px solid #d5dce6; border-radius: 6px; background: #fff; }
+summary { cursor: pointer; font-weight: bold; padding: 4px 0; }
+
+/* 넓은 표는 표만 옆으로 민다 (화면 전체가 밀리지 않게). */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: #fff; }
+th, td { border: 1px solid #d5dce6; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #e9eef5; white-space: nowrap; }
+td.empty { text-align: center; }
+
+/* 상점 확인 화면. */
+body.portal main { max-width: 640px; }
+body.portal header.top nav ul { gap: 4px 20px; }
+
+@media (min-width: 760px) {
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 32px; padding: 14px 24px; }
+  header.top .brand { margin: 0; }
+  header.top nav { display: flex; gap: 32px; flex: 1; }
+  header.top nav .group { margin: 0; }
+  header.top .who { margin: 0; }
+  dl { display: grid; grid-template-columns: 10em 1fr; gap: 4px 12px; }
+  dt { margin: 0; }
+}
+@media (prefers-reduced-motion: no-preference) { a.button, button { transition: background-color .1s; } }
+a.button:hover, button:hover { background: #1f4f8f; }
+button.plain:hover { background: #2c3e58; }

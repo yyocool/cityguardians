@@ -109,6 +109,42 @@ namespace CityGuardians.UI
         /// <summary>지금 배율 (지도 한 칸이 화면 기준 몇 단위인가).</summary>
         public float Scale => _scale;
 
+        // 도시 위험도 (v8.0)
+        /// <summary>지역을 위험 단계의 색으로 칠하고 있는가 (범례도 함께 보인다).</summary>
+        public bool RiskColorsShown => _riskOn;
+        public bool LegendVisible => _legend.activeSelf;
+        public string LegendText => _legendAll;
+        public string RiskButtonText => _riskButtonText.text;
+        public string InfoRisk => _riskValue.text;
+        public string InfoDefensePower => _powerValue.text;
+        public string InfoRecentInvasions => _invasionValue.text;
+        public string InfoContribution => _contributionValue.text;
+        public string InfoRank => _rankValue.text;
+        public string InfoSupport => _supportValue.text;
+        public string InfoRiskLine => _riskLine.text;
+        public string InfoRiskSummary => _riskSummary.gameObject.activeSelf ? _riskSummary.text : null;
+        public bool CityRowsVisible => _cityRows.activeSelf;
+        public bool SupportButtonVisible => _browseButtons.activeSelf && _supportButton.gameObject.activeSelf;
+        public bool SheetVisible => _sheet.activeSelf;
+        public string SheetTitle => _sheetTitle.text;
+        public string SheetBody => _sheetBody.text;
+        /// <summary>전국 보기에서 위험·긴급 도시에 붙인 표시의 수.</summary>
+        public int RiskMarkersShown => _riskMarkerCount;
+        /// <summary>그 지역의 이름표에 쓰인 글 (확대해서 볼 때). 이름표가 없으면 null.</summary>
+        public string RegionLabelText(string regionCode)
+        {
+            for (int i = 0; i < _regionLabelCount; i++)
+                if (_regionLabelOwners[i].code == regionCode) return _regionLabels[i].text;
+            return null;
+        }
+        public string SidoLabelText(string sidoCode)
+        {
+            MapData data = MapData.Instance;
+            for (int i = 0; i < data.Sidos.Count; i++)
+                if (data.Sidos[i].code == sidoCode) return _sidoLabels[i].text;
+            return null;
+        }
+
         private Canvas _canvas;
         private GameObject _root;
         private RectTransform _viewport;
@@ -146,6 +182,35 @@ namespace CityGuardians.UI
         private GameObject _tooltip;
         private RectTransform _tooltipRect;
         private Text _tooltipText;
+
+        // 도시 위험도 (v8.0): 색 + 모양 + 글자로 함께 보여 준다 (docs/CITY_RISK_SYSTEM.md 8장).
+        private const int RiskMarkerPool = 40;
+        private Text[] _riskMarkers;
+        private float[] _riskMarkerWidths;
+        private MapRegion[] _riskMarkerOwners;
+        private int _riskMarkerCount;
+        private GameObject _legend;
+        private string _legendAll = "";
+        private RectTransform _riskButton;
+        private Text _riskButtonText;
+        private GameObject _cityRows;
+        private Text _riskValue;
+        private Text _powerValue;
+        private Text _invasionValue;
+        private Text _contributionValue;
+        private Text _rankValue;
+        private Text _supportValue;
+        private Text _riskSummary;
+        private Text _riskLine;
+        private GameObject _browseButtons;
+        private RectTransform _rankingButton;
+        private RectTransform _historyButton;
+        private Image _supportButton;
+        private GameObject _sheet;
+        private Text _sheetTitle;
+        private Text _sheetBody;
+        private bool _riskOn;
+        private int _shownRiskKey = int.MinValue;
 
         // 보는 방법: 화면 가운데에 놓인 지도 좌표와 배율. 목표값을 향해 부드럽게 움직인다.
         private Vector2 _center;
@@ -206,6 +271,7 @@ namespace CityGuardians.UI
             BuildHeader();
             BuildInfoPanel();
             BuildFooter(data);
+            BuildSheet();
 
             Image tooltip = UiFactory.Panel(_viewport, "Tooltip", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 44f),
                 new Color(0.04f, 0.05f, 0.09f, 0.94f));
@@ -251,6 +317,16 @@ namespace CityGuardians.UI
                 _markLabels[i].text = marks[i].name;
             }
 
+            // 전국 보기에서 위험·긴급 도시에 붙이는 표시 (모양 + 글자). 색만으로 알리지 않는다.
+            _riskMarkers = new Text[RiskMarkerPool];
+            _riskMarkerWidths = new float[RiskMarkerPool];
+            _riskMarkerOwners = new MapRegion[RiskMarkerPool];
+            for (int i = 0; i < RiskMarkerPool; i++)
+            {
+                _riskMarkers[i] = MapLabel(layer, "Risk_" + i, 20, Color.white);
+                _riskMarkers[i].gameObject.SetActive(false);
+            }
+
             Image pin = UiFactory.Panel(layer, "MyCity", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(104f, 34f), UiFactory.Accent);
             _myCityPin = (RectTransform)pin.transform;
             _myCityPin.pivot = new Vector2(0.5f, 0f);
@@ -288,6 +364,9 @@ namespace CityGuardians.UI
             // 오른쪽 위: 누를 수 있는 뒤로 / 닫기
             _backButton = SmallButton("Back", new Vector2(-SideMargin - 230f, -30f), "뒤로   Esc");
             _closeButton = SmallButton("Close", new Vector2(-SideMargin, -30f), "닫기   M");
+            // 위험도 색과 시·도 색을 바꿔 보는 단추
+            _riskButton = SmallButton("RiskView", new Vector2(-SideMargin - 460f, -30f), "");
+            _riskButtonText = _riskButton.GetComponentInChildren<Text>();
         }
 
         private RectTransform SmallButton(string name, Vector2 position, string text)
@@ -300,7 +379,7 @@ namespace CityGuardians.UI
         private void BuildInfoPanel()
         {
             Image panel = UiFactory.Panel(_viewport, "Info", new Vector2(1f, 1f), new Vector2(-SideMargin, -110f),
-                new Vector2(PanelWidth - 16f, 560f), new Color(0.09f, 0.12f, 0.20f, 0.96f));
+                new Vector2(PanelWidth - 16f, 860f), new Color(0.09f, 0.12f, 0.20f, 0.96f));
             Transform root = panel.transform;
             float width = PanelWidth - 16f;
             UiFactory.Panel(root, "TopLine", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(width, 6f), UiFactory.Accent);
@@ -319,12 +398,74 @@ namespace CityGuardians.UI
             _pointsValue = UiFactory.LabelAt(root, "Points", new Vector2(1f, 1f), new Vector2(-24f, -232f), new Vector2(220f, 44f),
                 30, TextAnchor.MiddleRight, UiFactory.Accent);
 
-            _infoNote = UiFactory.LabelAt(root, "Note", new Vector2(0.5f, 1f), new Vector2(0f, -300f), new Vector2(width - 48f, 130f),
+            // 도시 위험도 (v8.0). 단계는 색과 함께 모양(●▲◆■)과 글자로 적는다.
+            _riskValue = InfoRow(root, "Risk", "위험도", -290f);
+            _cityRows = UiFactory.Stretch(root, "CityRows").gameObject;
+            Transform rows = _cityRows.transform;
+            _powerValue = InfoRow(rows, "Power", "방어력", -336f);
+            _invasionValue = InfoRow(rows, "Invasions", "최근 침공", -382f);
+            _contributionValue = InfoRow(rows, "Contribution", "도시 기여도", -428f);
+            _rankValue = InfoRow(rows, "Rank", "지역 순위", -474f);
+            _supportValue = InfoRow(rows, "Support", "지원 요청", -520f);
+            // 시·도나 전국을 볼 때: 단계별 도시 수
+            _riskSummary = UiFactory.LabelAt(root, "RiskSummary", new Vector2(0.5f, 1f), new Vector2(0f, -340f), new Vector2(width - 48f, 220f),
+                26, TextAnchor.UpperLeft, UiFactory.TextColor);
+            // 침공 진행 상황 또는 도시 분위기
+            _riskLine = UiFactory.LabelAt(root, "RiskLine", new Vector2(0.5f, 1f), new Vector2(0f, -572f), new Vector2(width - 48f, 68f),
+                22, TextAnchor.UpperLeft, Dim);
+
+            _infoNote = UiFactory.LabelAt(root, "Note", new Vector2(0.5f, 1f), new Vector2(0f, -648f), new Vector2(width - 48f, 96f),
                 26, TextAnchor.UpperLeft, UiFactory.TextColor);
 
             _residencyButton = UiFactory.Panel(root, "ResidencyButton", new Vector2(0.5f, 0f), new Vector2(0f, 24f),
                 new Vector2(width - 48f, 76f), UiFactory.Accent);
             _residencyButtonText = UiFactory.Label(_residencyButton.transform, "Text", 30, TextAnchor.MiddleCenter, ButtonText);
+
+            // 둘러볼 때의 단추: 지역 랭킹, 위험도 이력, 지원 출동
+            _browseButtons = UiFactory.Stretch(root, "BrowseButtons").gameObject;
+            Transform buttons = _browseButtons.transform;
+            float half = (width - 48f - 12f) * 0.5f;
+            _rankingButton = InfoButton(buttons, "Ranking", new Vector2(0f, 0f), new Vector2(24f, 70f), new Vector2(half, 40f), "지역 랭킹");
+            _historyButton = InfoButton(buttons, "History", new Vector2(1f, 0f), new Vector2(-24f, 70f), new Vector2(half, 40f), "위험도 이력");
+            _supportButton = UiFactory.Panel(buttons, "Support", new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(width - 48f, 40f), UiFactory.Accent);
+            UiFactory.Label(_supportButton.transform, "Text", 24, TextAnchor.MiddleCenter, ButtonText).text = "지원 출동";
+        }
+
+        private static Text InfoRow(Transform root, string name, string label, float y)
+        {
+            UiFactory.LabelAt(root, name + "Label", new Vector2(0f, 1f), new Vector2(24f, y), new Vector2(170f, 40f),
+                26, TextAnchor.MiddleLeft, UiFactory.TextColor).text = label;
+            Text value = UiFactory.LabelAt(root, name, new Vector2(1f, 1f), new Vector2(-24f, y), new Vector2(250f, 40f),
+                26, TextAnchor.MiddleRight, Color.white);
+            value.horizontalOverflow = HorizontalWrapMode.Overflow;
+            return value;
+        }
+
+        private static RectTransform InfoButton(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, string text)
+        {
+            Image back = UiFactory.Panel(parent, name, anchor, position, size, new Color(0.16f, 0.20f, 0.30f, 1f));
+            UiFactory.Label(back.transform, "Text", 24, TextAnchor.MiddleCenter, UiFactory.TextColor).text = text;
+            return (RectTransform)back.transform;
+        }
+
+        /// <summary>지역 랭킹이나 위험도 이력을 지도 위에 띄우는 글 한 장.</summary>
+        private void BuildSheet()
+        {
+            Image sheet = UiFactory.Panel(_viewport, "Sheet", new Vector2(0f, 1f), new Vector2(SideMargin, -TopMargin - 4f),
+                new Vector2(1340f, 780f), new Color(0.06f, 0.10f, 0.18f, 0.97f));
+            _sheet = sheet.gameObject;
+            Transform root = sheet.transform;
+            UiFactory.Panel(root, "TopLine", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(1340f, 6f), UiFactory.Accent);
+            _sheetTitle = UiFactory.LabelAt(root, "Title", new Vector2(0f, 1f), new Vector2(36f, -24f), new Vector2(1200f, 56f),
+                40, TextAnchor.MiddleLeft, Color.white);
+            _sheetBody = UiFactory.LabelAt(root, "Body", new Vector2(0f, 1f), new Vector2(36f, -100f), new Vector2(1268f, 600f),
+                26, TextAnchor.UpperLeft, UiFactory.TextColor);
+            // 글은 줄을 스스로 나눠서 온다.
+            _sheetBody.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _sheetBody.verticalOverflow = VerticalWrapMode.Overflow;
+            UiFactory.LabelAt(root, "Close", new Vector2(0f, 0f), new Vector2(36f, 20f), new Vector2(900f, 36f),
+                24, TextAnchor.MiddleLeft, UiFactory.Accent).text = "E  닫기      마우스 오른쪽 버튼  뒤로";
+            _sheet.SetActive(false);
         }
 
         private void BuildFooter(MapData data)
@@ -339,6 +480,28 @@ namespace CityGuardians.UI
                 16, TextAnchor.MiddleLeft, Dim);
             _attribution.horizontalOverflow = HorizontalWrapMode.Overflow;
             _attribution.text = data.File.attribution ?? "";
+
+            // 위험도 범례: 색 칸마다 모양과 이름, 범위를 함께 적는다. 지도 자리의 왼쪽 아래에 둔다.
+            Image legend = UiFactory.Panel(_viewport, "Legend", new Vector2(0f, 0f), new Vector2(SideMargin, BottomMargin + 4f),
+                new Vector2(760f, 44f), new Color(0.04f, 0.05f, 0.09f, 0.90f));
+            _legend = legend.gameObject;
+            string[] stages = { RiskStages.Safe, RiskStages.Caution, RiskStages.Danger, RiskStages.Emergency };
+            string[] ranges = { "0–24", "25–49", "50–74", "75–100" };
+            string all = "";
+            for (int i = 0; i < stages.Length; i++)
+            {
+                float x = 14f + i * 186f;
+                UiFactory.Panel(legend.transform, "Chip_" + i, new Vector2(0f, 0.5f), new Vector2(x, 0f), new Vector2(18f, 18f),
+                    CityRiskService.StageColor(stages[i]));
+                string text = $"{RiskStages.Icon(stages[i])} {RiskStages.DisplayName(stages[i])} {ranges[i]}";
+                Text label = UiFactory.LabelAt(legend.transform, "Stage_" + i, new Vector2(0f, 0.5f), new Vector2(x + 26f, 0f), new Vector2(160f, 34f),
+                    22, TextAnchor.MiddleLeft, Color.white);
+                label.horizontalOverflow = HorizontalWrapMode.Overflow;
+                label.text = text;
+                all += (i > 0 ? "   " : "") + text;
+            }
+            _legendAll = all;
+            _legend.SetActive(false);
         }
 
         // ── 매 프레임 ───────────────────────────────────────────
@@ -441,20 +604,31 @@ namespace CityGuardians.UI
             GameSession session = GameSession.Current;
             string mine = session != null && session.IsResident ? session.Me.regionCode : null;
 
+            // 위험도 색으로 보는 중이고 값을 받았을 때만 위험도를 그린다. 값이 바뀌면 다시 칠한다.
+            int riskKey = map.RiskView && map.RiskLoaded ? CityRiskService.Version : -1;
+            bool riskChanged = riskKey != _shownRiskKey;
+            _shownRiskKey = riskKey;
+            _riskOn = riskKey != -1;
+
             bool focusChanged = map.FocusedSido != _shownFocus;
-            if (focusChanged || map.SelectedRegion != _shownSelected || mine != _shownMine || justOpened)
+            if (focusChanged || map.SelectedRegion != _shownSelected || mine != _shownMine || justOpened || riskChanged)
             {
                 _shownFocus = map.FocusedSido;
                 _shownSelected = map.SelectedRegion;
                 _shownMine = mine;
-                if (focusChanged || justOpened)
+                if (focusChanged || justOpened || riskChanged)
                 {
-                    if (!justOpened) FitTo(_shownFocus, false);
-                    _hoverRegion = null;
-                    _hoverSido = null;
+                    if (focusChanged && !justOpened) FitTo(_shownFocus, false);
+                    if (focusChanged || justOpened)
+                    {
+                        _hoverRegion = null;
+                        _hoverSido = null;
+                    }
                     _fill.SetVerticesDirty();
                     _regionLines.SetVerticesDirty();
                     AssignRegionLabels();
+                    RefreshSidoLabels();
+                    AssignRiskMarkers();
                 }
                 _overlay.SetVerticesDirty();
             }
@@ -483,7 +657,9 @@ namespace CityGuardians.UI
 
             Vector2 local = _lastLocal;
             bool overPanel = local.x > _viewSize.x * 0.5f - PanelWidth - SideMargin;
-            bool overMap = !overPanel && !Over(_backButton, input) && !Over(_closeButton, input);
+            // 랭킹이나 이력이 떠 있는 동안에는 지도를 만지지 않는다 (아무 곳이나 누르면 닫힌다).
+            bool overMap = !overPanel && map.Sheet == MapSheet.None
+                           && !Over(_backButton, input) && !Over(_closeButton, input) && !Over(_riskButton, input);
 
             // 휠: 가리키는 곳을 그대로 둔 채 확대·축소한다.
             float zoom = input.ZoomDelta;
@@ -543,10 +719,22 @@ namespace CityGuardians.UI
         {
             if (Over(_backButton, input)) { map.Back(); return; }
             if (Over(_closeButton, input)) { map.Close(); return; }
+            if (map.Sheet != MapSheet.None) { map.Back(); return; }
+            if (Over(_riskButton, input)) { map.ToggleRiskView(); return; }
             if (_residencyButton.gameObject.activeSelf && Over((RectTransform)_residencyButton.transform, input))
             {
                 map.RequestResidency();
                 return;
+            }
+            if (_browseButtons.activeSelf)
+            {
+                if (Over(_rankingButton, input)) { map.ShowRankings(); return; }
+                if (_historyButton.gameObject.activeSelf && Over(_historyButton, input)) { map.ShowHistory(); return; }
+                if (_supportButton.gameObject.activeSelf && Over((RectTransform)_supportButton.transform, input))
+                {
+                    map.OfferSupport();
+                    return;
+                }
             }
             if (!overMap) return;
 
@@ -627,7 +815,9 @@ namespace CityGuardians.UI
                     MapRegion region = data.Regions[i];
                     if (region.sido != _shownFocus) continue;
                     Text label = _regionLabels[_regionLabelCount];
-                    label.text = region.name;
+                    // 위험도를 볼 때는 이름 옆에 단계의 모양과 수치를 적는다: "해운대구 ▲37"
+                    CityStatusDto city = _riskOn ? CityRiskService.Of(region.code) : null;
+                    label.text = city != null ? $"{region.name} {RiskStages.Icon(city.stage)}{city.risk}" : region.name;
                     _regionLabelWidths[_regionLabelCount] = label.preferredWidth;
                     _regionLabelOwners[_regionLabelCount] = region;
                     _regionLabelCount++;
@@ -635,6 +825,78 @@ namespace CityGuardians.UI
             }
             for (int i = 0; i < _regionLabels.Length; i++)
                 _regionLabels[i].gameObject.SetActive(i < _regionLabelCount);
+        }
+
+        /// <summary>시·도 이름 옆에, 그 시·도에서 가장 높은 위험 단계의 모양을 붙인다: "부산 ◆"</summary>
+        private void RefreshSidoLabels()
+        {
+            MapData data = MapData.Instance;
+            for (int i = 0; i < data.Sidos.Count; i++)
+            {
+                MapSido sido = data.Sidos[i];
+                string text = sido.shortName;
+                if (_riskOn)
+                {
+                    string worst = null;
+                    for (int r = 0; r < data.Regions.Count; r++)
+                    {
+                        if (data.Regions[r].sido != sido.code) continue;
+                        CityStatusDto city = CityRiskService.Of(data.Regions[r].code);
+                        if (city != null && (worst == null || RiskStages.Order(city.stage) > RiskStages.Order(worst))) worst = city.stage;
+                    }
+                    if (worst != null) text += " " + RiskStages.Icon(worst);
+                }
+                if (_sidoLabels[i].text == text) continue;
+                _sidoLabels[i].text = text;
+                _sidoLabelWidths[i] = _sidoLabels[i].preferredWidth;
+            }
+        }
+
+        /// <summary>
+        /// 전국 보기에서 위험·긴급 단계이거나 지원을 요청한 도시에 표시를 붙인다 (위험도가 높은 순서로, 자리 수만큼).
+        /// 시·도를 확대하면 지역 이름표가 같은 정보를 보여 주므로 표시는 숨긴다.
+        /// </summary>
+        private void AssignRiskMarkers()
+        {
+            _riskMarkerCount = 0;
+            if (_riskOn && _shownFocus == null && CityRiskService.Risks != null)
+            {
+                MapData data = MapData.Instance;
+                var cities = CityRiskService.Risks.cities;
+                // 자리가 적으므로 위험도가 높은 도시부터 고른다 (간단한 선택 정렬: 많아야 40번).
+                int lastRisk = int.MaxValue;
+                string lastCode = null;
+                while (_riskMarkerCount < RiskMarkerPool)
+                {
+                    CityStatusDto best = null;
+                    for (int i = 0; i < cities.Count; i++)
+                    {
+                        CityStatusDto city = cities[i];
+                        if (RiskStages.Order(city.stage) < RiskStages.Order(RiskStages.Danger) && !city.SupportOpen) continue;
+                        // 이미 고른 것보다 뒤에 오는 것만: (위험도 내림차순, 코드 오름차순)
+                        bool after = city.risk < lastRisk
+                                     || (city.risk == lastRisk && lastCode != null && string.CompareOrdinal(city.regionCode, lastCode) > 0);
+                        if (!after) continue;
+                        if (best == null || city.risk > best.risk
+                            || (city.risk == best.risk && string.CompareOrdinal(city.regionCode, best.regionCode) < 0))
+                            best = city;
+                    }
+                    if (best == null) break;
+                    lastRisk = best.risk;
+                    lastCode = best.regionCode;
+                    MapRegion region = data.FindRegion(best.regionCode);
+                    if (region == null) continue;
+                    Text marker = _riskMarkers[_riskMarkerCount];
+                    marker.text = RiskStages.Icon(best.stage) + (best.SupportOpen ? " 지원 요청" : " " + RiskStages.DisplayName(best.stage));
+                    // 바탕이 이미 단계의 색이라, 글자는 흰색(검은 테두리)으로 써서 어느 색 위에서도 읽히게 한다.
+                    marker.color = Color.white;
+                    _riskMarkerWidths[_riskMarkerCount] = marker.preferredWidth;
+                    _riskMarkerOwners[_riskMarkerCount] = region;
+                    _riskMarkerCount++;
+                }
+            }
+            for (int i = 0; i < _riskMarkers.Length; i++)
+                _riskMarkers[i].gameObject.SetActive(i < _riskMarkerCount);
         }
 
         private void PlaceLabels(MapController map)
@@ -680,6 +942,13 @@ namespace CityGuardians.UI
                 _markDots[i].anchoredPosition = at;
                 // 오른쪽 끝에 붙은 섬이라 이름은 왼쪽에 둔다.
                 _markLabels[i].rectTransform.anchoredPosition = at + new Vector2(-34f, 0f);
+            }
+
+            // 위험·긴급 도시의 표시: 이름표 자리의 바로 아래.
+            for (int i = 0; i < _riskMarkerCount; i++)
+            {
+                MapRegion owner = _riskMarkerOwners[i];
+                _riskMarkers[i].rectTransform.anchoredPosition = LocalOf(new Vector2(owner.labelX, owner.labelY)) + new Vector2(0f, -22f);
             }
 
             MapRegion mine = data.FindRegion(_shownMine);
@@ -788,6 +1057,121 @@ namespace CityGuardians.UI
                 _residencyButtonText.color = ready ? ButtonText : Dim;
                 _residencyButtonText.text = ready ? "E   여기로 전입신고" : "지도에서 도시를 골라요";
             }
+
+            RefreshRiskTexts(map, session, data, sido, region);
+        }
+
+        /// <summary>
+        /// 도시 위험도 칸 (docs/CITY_RISK_SYSTEM.md 8장). 수치는 서버가 계산해 준 것을 그대로 적는다.
+        /// 단계는 색만으로 구분하지 않고 모양(●▲◆■)과 이름을 함께 쓴다.
+        /// </summary>
+        private void RefreshRiskTexts(MapController map, GameSession session, MapData data, MapSido sido, MapRegion region)
+        {
+            bool loaded = map.RiskLoaded;
+            _legend.SetActive(_riskOn);
+            _riskButtonText.text = map.RiskView ? "보기: 위험도" : "보기: 시·도";
+
+            _cityRows.SetActive(region != null);
+            _riskSummary.gameObject.SetActive(region == null);
+            _riskLine.color = Dim;
+
+            if (region != null)
+            {
+                CityStatusDto city = map.RiskOf(region.code);
+                if (city == null)
+                {
+                    string waiting = loaded ? "—" : "…";
+                    _riskValue.text = waiting;
+                    _riskValue.color = Color.white;
+                    _powerValue.text = waiting;
+                    _invasionValue.text = waiting;
+                    _contributionValue.text = waiting;
+                    _rankValue.text = waiting;
+                    _supportValue.text = waiting;
+                    _supportValue.color = Color.white;
+                    _riskLine.text = "";
+                }
+                else
+                {
+                    _riskValue.text = $"{CityRiskService.StageBadge(city.stage)} · {city.risk}";
+                    _riskValue.color = CityRiskService.StageColor(city.stage);
+                    _powerValue.text = city.defensePower.ToString("N0");
+                    _invasionValue.text = $"{city.recentInvasions:N0}회";
+                    _contributionValue.text = city.contribution.ToString("N0");
+                    // 가디언이 지키는 도시만 순위에 든다. NPC 수비대만 지키는 도시는 따로 적는다.
+                    _rankValue.text = city.playerDefended && city.rank > 0 ? $"전국 {city.rank}위" : "NPC 수비대 · 순위 밖";
+                    bool supporting = session != null && session.SupportRegionCode == city.regionCode;
+                    _supportValue.text = supporting ? "내가 지원 중" : city.SupportOpen ? "요청 중" : "없음";
+                    _supportValue.color = supporting || city.SupportOpen ? CityRiskService.StageColor(RiskStages.Emergency) : Color.white;
+                    if (city.HasInvasion)
+                    {
+                        _riskLine.text = $"{InvasionKinds.DisplayName(city.invasionKind)} 진행 중 · 격퇴 {city.invasionProgress} / {city.invasionRequired}";
+                        _riskLine.color = CityRiskService.StageColor(RiskStages.Danger);
+                    }
+                    else
+                    {
+                        _riskLine.text = RiskStages.Mood(city.stage);
+                    }
+                }
+            }
+            else
+            {
+                // 전국이나 시·도: 단계별 도시 수를 글로 적는다.
+                int safe = 0, caution = 0, danger = 0, emergency = 0, invasions = 0, supports = 0, total = 0;
+                long riskSum = 0;
+                for (int i = 0; i < data.Regions.Count; i++)
+                {
+                    MapRegion each = data.Regions[i];
+                    if (sido != null && each.sido != sido.code) continue;
+                    CityStatusDto city = map.RiskOf(each.code);
+                    if (city == null) continue;
+                    total++;
+                    riskSum += city.risk;
+                    switch (city.stage)
+                    {
+                        case RiskStages.Caution: caution++; break;
+                        case RiskStages.Danger: danger++; break;
+                        case RiskStages.Emergency: emergency++; break;
+                        default: safe++; break;
+                    }
+                    if (city.HasInvasion) invasions++;
+                    if (city.SupportOpen) supports++;
+                }
+                _riskValue.color = Color.white;
+                if (total == 0)
+                {
+                    _riskValue.text = loaded ? "—" : "…";
+                    _riskSummary.text = loaded ? "" : "도시 소식을 받는 중이에요…";
+                    _riskLine.text = "";
+                }
+                else
+                {
+                    _riskValue.text = $"평균 {riskSum / total}";
+                    _riskSummary.text =
+                        $"{CityRiskService.StageBadge(RiskStages.Emergency)}   {emergency:N0}곳\n" +
+                        $"{CityRiskService.StageBadge(RiskStages.Danger)}   {danger:N0}곳\n" +
+                        $"{CityRiskService.StageBadge(RiskStages.Caution)}   {caution:N0}곳\n" +
+                        $"{CityRiskService.StageBadge(RiskStages.Safe)}   {safe:N0}곳";
+                    _riskLine.text = $"침공 진행 중 {invasions:N0}곳 · 지원 요청 {supports:N0}곳";
+                }
+            }
+
+            // 단추: 둘러볼 때만. 이력은 도시를 골랐을 때, 지원은 나설 수 있을 때만 보인다.
+            bool browse = map.Mode == MapMode.Browse;
+            _browseButtons.SetActive(browse);
+            if (browse)
+            {
+                _historyButton.gameObject.SetActive(region != null);
+                _supportButton.gameObject.SetActive(map.CanOfferSupport);
+            }
+
+            bool sheet = map.Sheet != MapSheet.None;
+            _sheet.SetActive(sheet);
+            if (sheet)
+            {
+                _sheetTitle.text = map.SheetTitle ?? "";
+                _sheetBody.text = map.SheetBody ?? "";
+            }
         }
 
         private static void Sum(MapController map, MapData data, string sidoCode, out int residents, out long points, out int regionCount)
@@ -821,6 +1205,13 @@ namespace CityGuardians.UI
         private Color32 FillColor(MapRegion region, int index)
         {
             Color color = RegionColors.OfSido(region.sido);
+            // 위험도를 볼 때는 단계의 색으로 칠한다 (흰 글자가 읽히도록 조금 어둡게). 값이 없는 곳은 시·도의 색 그대로.
+            CityStatusDto city = _riskOn ? CityRiskService.Of(region.code) : null;
+            if (city != null)
+            {
+                Color stage = CityRiskService.StageColor(city.stage);
+                color = new Color(stage.r * 0.80f, stage.g * 0.80f, stage.b * 0.80f, 1f);
+            }
             // 같은 시·도 안에서도 지역마다 밝기를 조금씩 달리해 경계가 보이게 한다.
             float shade = 0.88f + 0.12f * ((index * 7) % 5) / 4f;
             color = new Color(color.r * shade, color.g * shade, color.b * shade, 1f);
@@ -829,7 +1220,8 @@ namespace CityGuardians.UI
             return color;
         }
 
-        private static void AddRegion(VertexHelper vh, MapRegion region, Color32 color)
+        /// <summary>시·군·구 하나를 그 색으로 칠한다. 대시보드의 축약 지도도 이것을 쓴다.</summary>
+        public static void AddRegion(VertexHelper vh, MapRegion region, Color32 color)
         {
             int[] v = region.v;
             int[] t = region.t;

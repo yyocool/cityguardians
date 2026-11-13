@@ -1,0 +1,41 @@
+/* CITY GUARDIANS 관리자 화면. 외부 글꼴·이미지를 쓰지 않는다. */
+* { box-sizing: border-box; }
+body { margin: 0; display: flex; min-height: 100vh; font: 14px/1.5 "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; color: #1b2330; background: #f4f6f9; }
+nav { width: 220px; flex: none; padding: 16px; background: #18263a; color: #dfe7f2; }
+nav a { color: #dfe7f2; text-decoration: none; }
+nav a:hover, nav a:focus { text-decoration: underline; }
+nav ul { list-style: none; margin: 12px 0; padding: 0; }
+nav li { margin: 6px 0; }
+nav .brand { font-weight: bold; margin: 0 0 8px; }
+nav .who { margin: 16px 0 6px; font-size: 12px; color: #a9b8cc; }
+main { flex: 1; min-width: 0; padding: 20px 28px 60px; }
+h1 { margin: 0 0 16px; font-size: 22px; }
+h2 { margin: 28px 0 10px; font-size: 16px; border-bottom: 1px solid #cfd8e3; padding-bottom: 4px; }
+h3 { margin: 20px 0 8px; font-size: 14px; }
+.prose { white-space: pre-wrap; max-width: 900px; }
+table { border-collapse: collapse; width: 100%; background: #fff; }
+th, td { border: 1px solid #d5dce6; padding: 6px 8px; text-align: left; vertical-align: top; }
+th { background: #e9eef5; white-space: nowrap; }
+td.empty { color: #5d6b7e; text-align: center; }
+code { font: 12px/1.4 Consolas, monospace; word-break: break-all; }
+.field { margin: 8px 0; }
+.field label { font-weight: bold; }
+.field input[type=text], .field input[type=password], .field select { margin-left: 8px; padding: 4px 6px; min-width: 160px; }
+.field small, small { color: #55637a; font-weight: normal; }
+textarea { width: 100%; max-width: 900px; font: 12px/1.4 Consolas, monospace; }
+button { padding: 6px 14px; border: 1px solid #1f4f8f; background: #2563a8; color: #fff; border-radius: 3px; cursor: pointer; }
+button:focus, a:focus, input:focus, select:focus, textarea:focus { outline: 2px solid #e08a00; outline-offset: 1px; }
+form.inline { display: inline; }
+form.inline input[type=text] { width: 140px; padding: 3px 5px; }
+form.filter { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.sub a { margin-right: 14px; }
+.readonly input, .readonly select, .readonly textarea { pointer-events: none; background: #eef1f5; }
+.problems { margin: 12px 0; padding: 10px 14px; border: 2px solid #b3261e; background: #fdecea; }
+.problems ul { margin: 6px 0 0; padding-left: 20px; }
+.notice { margin: 12px 0; padding: 10px 14px; border: 2px solid #1e7a3c; background: #e8f6ec; }
+/* 위험 단계: 색과 함께 모양(● ▲ ◆ ■)과 글자를 쓴다. */
+.stage { display: inline-block; padding: 1px 8px; border-radius: 3px; font-weight: bold; white-space: nowrap; }
+.stage-safe { background: #dff3e4; color: #145a2a; }
+.stage-caution { background: #fff3c4; color: #6b5300; }
+.stage-danger { background: #ffe0c2; color: #8a3c00; }
+.stage-emergency { background: #fbd5d2; color: #8c1410; }

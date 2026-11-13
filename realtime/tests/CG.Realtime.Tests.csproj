@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    실시간 서버의 테스트 (docs/TEST_PLAN.md). 서버를 이 프로세스 안에 띄우고 실제 WebSocket 으로 여러 클라이언트를 붙인다.
+    게임 서버(PHP)는 흉내 낸 것을 쓴다 (FakeGame): 같은 서명 확인, 같은 결과 검증.
+
+    실행:  realtime/tests 폴더에서 dotnet test
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>CityGuardians.Realtime.Tests</RootNamespace>
+    <AssemblyName>CG.Realtime.Tests</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>$(NoWarn);NUnit2005;NUnit2006;NUnit2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <ProjectReference Include="..\src\CG.Realtime.csproj" />
+  </ItemGroup>
+
+  <!--
+    클라이언트의 연결 코드(Unity 를 쓰지 않는 부분)를 그대로 가져와 실제 실시간 서버에 붙여 본다 (ClientLinkTests).
+    Unity 의 JsonUtility 는 tools/check/stubs 의 대역이 대신한다.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <Compile Include="..\..\client\Assets\CityGuardians\Services\CoopLink.cs" Link="Client\CoopLink.cs" />
+    <Compile Include="..\..\client\Assets\CityGuardians\Services\CoopRemoteLink.cs" Link="Client\CoopRemoteLink.cs" />
+    <Compile Include="..\..\client\Assets\CityGuardians\Services\CoopWebSocket.cs" Link="Client\CoopWebSocket.cs" />
+    <Compile Include="..\..\tools\check\stubs\JsonUtilityShim.cs" Link="Client\JsonUtilityShim.cs" />
+  </ItemGroup>
+</Project>

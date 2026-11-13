@@ -17,9 +17,19 @@ namespace CityGuardians.UI
 
         public Canvas Canvas { get; private set; }
         public ChoicePanel Choice { get; private set; }
+        /// <summary>CITY PASS 쿠폰을 상점에 보여 주는 화면.</summary>
+        public QrPanel Qr { get; private set; }
         public DefenseHud Defense { get; private set; }
+        /// <summary>전투 모드 공통 화면: 도시 위험도 표시와 FPS 화면.</summary>
+        public CombatHud Combat { get; private set; }
+        /// <summary>협동 방어전 화면: 관문 내구도, 공동 예산, 대원 목록, 결과.</summary>
+        public CoopHud Coop { get; private set; }
+        /// <summary>협동 방어전의 전술 미니맵.</summary>
+        public MinimapPanel Minimap { get; private set; }
         public MapPanel Map { get; private set; }
         public Hotbar Hotbar { get; private set; }
+        /// <summary>오른쪽의 실시간 대시보드: 내 계좌, 우리 도시, 전국 현황 카드.</summary>
+        public DashboardLayoutManager Dashboard { get; private set; }
         public string NameText => _nameText.text;
         /// <summary>소속 도시 줄. 이방인이면 null.</summary>
         public string CityText => _cityText.gameObject.activeSelf ? _cityText.text : null;
@@ -165,6 +175,16 @@ namespace CityGuardians.UI
             Defense = gameObject.AddComponent<DefenseHud>();
             Defense.BuildStatus(root);
 
+            // 왼쪽 위의 도시 위험도와 FPS 화면 (조준점, 탄창, 임무 현황)
+            Combat = gameObject.AddComponent<CombatHud>();
+            Combat.BuildStatus(Canvas, root);
+
+            // 오른쪽 위, GC 아래: 협동 방어전의 미니맵과 그 아래의 관문·예산·대원 (협동 방어전 중에만 보인다)
+            Minimap = gameObject.AddComponent<MinimapPanel>();
+            Minimap.BuildCorner(root);
+            Coop = gameObject.AddComponent<CoopHud>();
+            Coop.BuildStatus(root);
+
             // 가운데 위: 지금 할 일 한 줄
             Image objective = UiFactory.Panel(root, "Objective", new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(900f, 60f), UiFactory.PanelColor);
             _objective = objective.gameObject;
@@ -213,13 +233,24 @@ namespace CityGuardians.UI
             // 오른쪽 아래: 무기 칸과 수리 키트
             Hotbar = Hotbar.Create(root);
 
+            // 오른쪽: 실시간 대시보드 카드 세 장. 걸어 다니는 화면의 다른 요소들을 잰 뒤 남는 자리에 선다.
+            // 지도, 선택 메뉴, 결과 화면보다 먼저 만들어서 그것들에 덮인다.
+            Dashboard = DashboardLayoutManager.Create(Canvas, root);
+
             // 지도: 걸어 다니는 화면의 요소들을 모두 덮는다. 알림은 지도 위에서도 보여야 하므로 그 위로 올린다.
             Map = MapPanel.Create(Canvas, root);
+            // 펼친 전술 지도도 걸어 다니는 화면을 덮는다. 핑을 고르는 선택 메뉴는 그 위에 뜬다.
+            Minimap.BuildTactical(root);
             _toast.transform.SetAsLastSibling();
 
             // 선택 메뉴와 방어전 결과
             Choice = ChoicePanel.Create(root);
             Defense.BuildResult(root);
+            Combat.BuildResult(root);
+            Coop.BuildResult(root);
+
+            // 쿠폰을 상점에 보여 주는 화면 (QR 과 일회용 코드)
+            Qr = QrPanel.Create(root);
 
             // 잠시 멈춤
             Image pause = UiFactory.Fill(UiFactory.Stretch(root, "Pause"), new Color(0f, 0f, 0f, 0.62f));
@@ -423,8 +454,13 @@ namespace CityGuardians.UI
             UpdateFade(dt);
             Map.Refresh(dt);
             Hotbar.Refresh();
+            Dashboard.Refresh(dt);
             Choice.Refresh();
+            Qr.Refresh();
             Defense.Refresh(dt);
+            Combat.Refresh(dt);
+            Minimap.Refresh(dt);
+            Coop.Refresh(dt);
 
             if (_hurtAlpha > 0f)
             {
