@@ -1,0 +1,24 @@
+# 글자 파일은 저장소에서도 작업 폴더에서도 줄 끝을 LF로 둔다.
+# Unity는 설정·장면·.meta 파일을 LF로 쓴다. Windows의 git 기본 설정(core.autocrlf=true)으로 CRLF로 받으면
+# Unity를 한 번 열기만 해도 고친 적 없는 파일이 "수정됨"으로 보인다. 이 설정이 그것을 막는다.
+* text=auto eol=lf
+
+# 바이너리 (줄 끝을 바꾸지 않고, 글자로 비교하지 않는다)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.psd binary
+*.tga binary
+*.exr binary
+*.ico binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.fbx binary
+*.blend binary
+*.ttf binary
+*.otf binary
+*.dll binary
+*.zip binary
+*.pdf binary
