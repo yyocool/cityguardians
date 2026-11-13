@@ -1,0 +1,63 @@
+# ── 비밀 값 ─────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.ppk
+id_rsa*
+id_ed25519*
+
+# ── 백업, 덤프 ──────────────────────────
+*.sql
+*.sql.gz
+*.dump
+backups/
+!server/migrations/*.sql
+
+# ── Unity (client/) ─────────────────────
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/[Mm]emoryCaptures/
+client/[Rr]ecordings/
+client/*.csproj
+client/*.sln
+client/*.slnx
+client/*.suo
+client/*.user
+client/*.pidb
+client/*.booproj
+client/.vs/
+client/.vsconfig
+client/.idea/
+client/.utmp/
+client/TestResults*.xml
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+crashlytics-build.properties
+
+# ── 빌드 산출물 ─────────────────────────
+/builds/
+*.apk
+*.aab
+*.unitypackage
+
+# ── PHP / Node ──────────────────────────
+vendor/
+node_modules/
+# 지도 가공 도구가 내려받는 원자료 (35 MB). 출처와 해시는 tools/map/build-regions.mjs 에 있다.
+tools/map/.cache/
+server/storage/
+*.log
+
+# ── OS / 편집기 ─────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/

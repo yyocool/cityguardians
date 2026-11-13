@@ -1,0 +1,14 @@
+{
+  "name": "cityguardians-map-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "행정구역 경계 데이터를 게임 지도용으로 가공하는 개발 도구. 게임에 포함되지 않는다.",
+  "type": "module",
+  "scripts": {
+    "build": "node build-regions.mjs"
+  },
+  "devDependencies": {
+    "earcut": "3.2.4",
+    "mapshaper": "0.7.101"
+  }
+}

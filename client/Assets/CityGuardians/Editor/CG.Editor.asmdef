@@ -1,0 +1,20 @@
+{
+    "name": "CG.Editor",
+    "rootNamespace": "CityGuardians.EditorTools",
+    "references": [
+        "CG.Domain",
+        "CG.Services",
+        "CG.Gameplay"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

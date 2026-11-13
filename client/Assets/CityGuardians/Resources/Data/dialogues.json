@@ -1,0 +1,186 @@
+{
+  "npcs": [
+    { "code": "bori", "name": "보리" },
+    { "code": "dodam", "name": "도담" },
+    { "code": "hanul", "name": "강한울 대장" },
+    { "code": "miso", "name": "오미소" },
+    { "code": "daon", "name": "은다온" },
+    { "code": "areum", "name": "한아름" },
+    { "code": "narae", "name": "정나래" }
+  ],
+  "panels": [
+    {
+      "code": "zero_warning",
+      "title": "긴급 경보",
+      "body": "도시 AI 'ZERO'가 폭주했습니다.\n로봇들이 거리로 나오고 있습니다.\n\n시민 여러분은 안전한 곳으로 대피하세요.",
+      "alert": true
+    },
+    {
+      "code": "city_news",
+      "title": "도시 소식",
+      "body": "해운대구 방어대가 로봇과 싸우고 있습니다.\n전투 구역에서 로봇을 물리치면 GC를 받습니다.\n방어기지에서 방어전에 출동할 수 있습니다.\n주민센터에서 전입신고를 받고 있습니다.\n\nM 키를 누르면 대한민국 지도가 열립니다.",
+      "alert": false
+    }
+  ],
+  "entries": [
+    {
+      "npc": "bori", "minStep": 0, "maxStep": 0, "setStep": 0, "action": "",
+      "lines": [
+        "좋은 아침! 나는 안내 로봇 보리야.",
+        "W, A, S, D 키로 걸어 볼래? 마우스를 움직이면 둘러볼 수 있어."
+      ]
+    },
+    {
+      "npc": "bori", "minStep": 1, "maxStep": 1, "setStep": 0, "action": "",
+      "lines": [
+        "컴퓨터가 시끄럽게 울리고 있어!",
+        "가까이 가서 E 키를 눌러 봐."
+      ]
+    },
+    {
+      "npc": "bori_after_warning", "minStep": 1, "maxStep": 1, "setStep": 2, "action": "",
+      "lines": [
+        "큰일이야! 로봇들이 고장 났나 봐.",
+        "밖에서 도담이가 도와 달라고 외치고 있어!",
+        "여기 스파크 배턴을 챙겨. 문으로 나가서 도담이를 도와주자!"
+      ]
+    },
+    {
+      "npc": "bori", "minStep": 2, "maxStep": 2, "setStep": 0, "action": "",
+      "lines": [
+        "스파크 배턴은 챙겼지?",
+        "문 앞에서 E 키를 누르면 밖으로 나갈 수 있어."
+      ]
+    },
+    {
+      "npc": "bori", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "도시가 위험해. 밖에서 사람들을 도와주자!",
+        "다치면 침대에 누워. 체력이 모두 회복돼."
+      ]
+    },
+    {
+      "npc": "bori", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "",
+      "lines": [
+        "오늘도 도시를 지켜 줘서 고마워.",
+        "침대에 누우면 체력이 모두 회복돼.",
+        "F 키를 누르면 방을 꾸밀 수 있어. 옷은 옷장에서 갈아입어!",
+        "옷과 가구는 광장 남동쪽 알록달록 가게에서 팔아."
+      ]
+    },
+
+    {
+      "npc": "dodam", "minStep": 3, "maxStep": 3, "setStep": 0, "action": "",
+      "lines": [
+        "으아아! 로봇이 쫓아와요! 도와주세요!"
+      ]
+    },
+    {
+      "npc": "dodam", "minStep": 4, "maxStep": 4, "setStep": 5, "action": "claim_first_rescue",
+      "lines": [
+        "우와, 로봇을 물리쳤어요! 정말 고마워요!",
+        "이건 제가 모은 용돈이에요. 꼭 받아 주세요.",
+        "광장에 강한울 대장님이 계세요. 한번 만나 보세요!"
+      ]
+    },
+    {
+      "npc": "dodam", "minStep": 5, "maxStep": 99, "setStep": 0, "action": "",
+      "lines": [
+        "아까는 정말 고마웠어요!",
+        "광장 동쪽 미소 아줌마 가게에 좋은 게 많대요. GC를 모아서 가 보세요!",
+        "남동쪽 알록달록 가게에서는 예쁜 옷이랑 가구를 팔아요!"
+      ]
+    },
+
+    {
+      "npc": "hanul", "minStep": 3, "maxStep": 4, "setStep": 0, "action": "",
+      "lines": [
+        "지금은 위험하네! 집 앞 거리의 아이부터 도와주게."
+      ]
+    },
+    {
+      "npc": "hanul", "minStep": 5, "maxStep": 5, "setStep": 6, "action": "",
+      "lines": [
+        "자네가 도담이를 구했다지? 나는 방어대장 강한울이네.",
+        "도시의 AI 'ZERO'가 폭주해서 로봇들이 사람들을 쫓고 있어.",
+        "광장 북쪽 양옆에 전투 구역이 있네. 로봇을 물리치면 GC를 받을 수 있지.",
+        "힘이 붙으면 서쪽 방어기지의 출동 게이트로 오게. 함께 도시를 지키세.",
+        "광장 서쪽 주민센터에서 전입신고를 하면 정식 가디언이 될 수 있네. 물론 이방인으로 지내도 괜찮아.",
+        "힘들면 집 침대에서 쉬게. 잘 부탁하네!"
+      ]
+    },
+    {
+      "npc": "hanul", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "",
+      "lines": [
+        "전투 구역은 광장 북쪽 양옆이네. 동쪽에는 로봇, 서쪽에는 기계 곤충이 많아.",
+        "방어기지를 다시 열었네! 서쪽 방어기지의 출동 게이트에서 방어전에 나설 수 있어.",
+        "방어전에서는 타워를 세워 몰려오는 로봇 무리를 막는다네. 우리 방어대원들도 함께 싸울 걸세.",
+        "GC가 모이면 광장 동쪽 미소 상점에 들러 보게. 멀리서 쏘는 볼트 블래스터가 큰 힘이 될 걸세.",
+        "M 키를 누르면 대한민국 지도를 볼 수 있네. 다른 도시들이 어떻게 지내는지 살펴보게."
+      ]
+    },
+
+    {
+      "npc": "miso", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "어서 와요! 미소 상점이에요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "miso", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_shop",
+      "lines": [
+        "어서 와요! 미소 상점이에요. 천천히 골라 봐요."
+      ]
+    },
+    {
+      "npc": "daon", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "도시은행에 오신 걸 환영해요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "daon", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_bank",
+      "lines": [
+        "도시은행이에요. 돈을 맡겨 두면 매일 조금씩 불어나요."
+      ]
+    },
+    {
+      "npc": "areum", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "어서 와요! 알록달록 가게예요.",
+        "지금은 밖이 위험해요. 방어대장님을 먼저 만나고 오세요!"
+      ]
+    },
+    {
+      "npc": "areum", "minStep": 6, "maxStep": 99, "setStep": 0, "action": "open_colorshop",
+      "lines": [
+        "어서 와요! 알록달록 가게예요. 예쁜 옷이랑 가구를 구경해 봐요."
+      ]
+    },
+    {
+      "npc": "narae", "minStep": 3, "maxStep": 5, "setStep": 0, "action": "",
+      "lines": [
+        "주민센터는 지금 복구하고 있어요.",
+        "문을 열면 전입신고를 도와 드릴게요. 이방인으로 지내셔도 괜찮아요."
+      ]
+    },
+    {
+      "npc": "narae", "minStep": 6, "maxStep": 99, "when": "stranger", "setStep": 0, "action": "offer_residency",
+      "lines": [
+        "어서 오세요! 주민센터가 다시 문을 열었어요.",
+        "전입신고를 하면 좋아하는 도시의 정식 가디언이 돼요.",
+        "실제로 사는 곳과 달라도 괜찮아요. 작은 축하 선물도 준비했어요!"
+      ]
+    },
+    {
+      "npc": "narae", "minStep": 6, "maxStep": 99, "when": "resident", "setStep": 0, "action": "",
+      "lines": [
+        "가디언님, 반가워요! 우리 도시를 잘 부탁드려요.",
+        "M 키를 누르면 지도에서 내 도시를 볼 수 있어요.",
+        "다른 도시로 이사하는 신청은 아직 준비 중이에요."
+      ]
+    }
+  ]
+}

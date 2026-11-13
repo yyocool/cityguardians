@@ -1,0 +1,20 @@
+{
+    "name": "CG.UI",
+    "rootNamespace": "CityGuardians.UI",
+    "references": [
+        "CG.Domain",
+        "CG.Services",
+        "CG.Input",
+        "CG.Gameplay",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
